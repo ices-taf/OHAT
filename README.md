@@ -1,6 +1,9 @@
 Hazardous substances assessment tool
 ================
 
+As an example, the code in this repository produces an html version of
+the plots and tables shown below.
+
 ### Assessment plots
 
 Will put some introductory text here, including summary information

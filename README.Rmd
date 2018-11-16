@@ -6,6 +6,9 @@ params:
   series: "Belgium BCP HCHA Crangon crangon"
 ---
 
+As an example, the code in this repository produces an html version of the
+plots and tables shown below.
+
 ```{r load_data, include = FALSE}
 load("assessment_platform.RData")
 ```
