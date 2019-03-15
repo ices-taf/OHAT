@@ -2,7 +2,12 @@ Hazardous substances assessment tool
 ================
 
 As an example, the code in this repository produces an html version of
-the plots and tables shown below.
+the plots and tables shown below. The link to this assessment is
+here:
+
+<https://ocean.ices.dk/oat/OAT/GettrResult?seriesID=Belgium%20BCP%20HCHA%20Crangon%20crangon&matrix=Biota>
+
+and can be accessed via <https://ocean.ices.dk/oat/>
 
 ### Assessment plots
 
