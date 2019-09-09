@@ -229,7 +229,7 @@ txt_trend3 <- switch(
 
 txt_AC <- paste(
   "The assessment", 
-  if (length(AC_id) == 1) "criterion is" else "criteria are", 
+  if (is_AC && length(AC_id) == 1) "criterion is" else "criteria are", 
   "indicated on the right hand side of the plot and by horizontal dashed lines (if within the range of the data)."
 )
 ```
