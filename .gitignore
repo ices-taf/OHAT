@@ -1,10 +1,10 @@
 .Rproj.user
 .Rhistory
-.RData
 .Ruserdata
 
 hazardous-tool\.Rproj
 
-*.RData
+
 
 OHAT\.Rproj
+OHAT.zip
