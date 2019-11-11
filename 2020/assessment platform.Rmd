@@ -78,6 +78,9 @@ if (info$compartment %in% "biota") {
     info$species_name
   )
   if (!any(ok)) info$species_name <- tolower(info$species_name)
+  
+  info$species_group <- get.info("species", info$species, "family")
+  info$species_group <- as.character(info$species_group)
 }
 
 if (info$group %in% c("bioeffect", "imposex")) {
@@ -130,9 +133,7 @@ info$matrix_name <- get.info("matrix", info$matrix, "name")
 
 info$unit <- as.character(get.info("determinand", info$determinand, "unit", info$compartment))
 
-args.list <- list(compartment = info$compartment, purpose = info$purpose)
-if (info$compartment == "biota") args.list <- c(args.list, list(group = info$group, species = info$species))
-info$basis <- do.call("get.basis", args.list)
+info$basis <- as.character(info$basis)
 
 args.list <- list(units = info$unit, basis = info$basis, html = TRUE, compartment = info$compartment)
 
@@ -196,6 +197,7 @@ info_multi <- within(info_multi, {
 ```
 
 
+
 ### Assessment plots and statistical analysis {.tabset}
 
 This report provides details of the assessment of `r paste(info$det_name, txt_concentrations)` in `r switch(info$compartment, biota = info$species_name, info$compartment)` at station `r info$stationName`.  `r if (is_normalised) paste0("Concentrations are ", extra.text, " unless otherwise stated.")`
@@ -244,6 +246,7 @@ txt_AC <- paste(
 <li class = "gap">Trend with data.  `r txt_trend3`</li>
 ```  
 
+
 ```{asis, eval = info$compartment %in% "biota"}
 <li class = "gap">Auxiliary data.  The individual `r txt_measurements` with supporting information: mean length of the individuals in the sample; dry weight (%) of the sample; lipid weight (%) of the sample.</li>
 ```
@@ -255,6 +258,12 @@ txt_AC <- paste(
 ```{asis, eval = info$compartment %in% "water"}
 <li class = "gap">Auxiliary data.  No auxiliary data are currently plotted.</li>
 ```
+
+
+```{asis, eval = info$purpose %in% "AMAP"}
+<li class = "gap">Stable isotope data.  The individual `r txt_measurements` with supporting information: the mean length of the individuals in the sample; the isotope ratio 13C:12C and the isotope ratio 15N:14N.</li>
+```
+
 
 
 ```{r txt_related_compounds, include = FALSE}
@@ -275,6 +284,9 @@ txt_related2 <- switch(
 
 <li class = "gap">Assessment (related `r txt_compounds`).  `r txt_related1`</li>
 <li class = "gap">Data (related `r txt_compounds`). `r txt_related2`</li>
+
+<li class = "gap">Statistical analysis. This tab summarises the fits of models with different amount of smoothing. The final choice is the model with the minimum AICc (with the caveat that a linear model is always preferred to a mean model if there are sufficient years of data). The tab also gives the contrast between the fitted values at the start and end of the timeseries, and over the most recent twenty years.  Finally, if there are assessment criteria, the tab assesses status by comparing the fitted value at the end of the timeseries to the assessment criteria.</li>
+
 </ul>
 
 
@@ -340,6 +352,16 @@ plot.auxiliary(data, info, xykey.cex = 1.2)
 ```
 
 
+
+<!-- #### Stable isotope data -->
+
+<!-- ```{r isotope_data, eval = ok, echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7} -->
+<!-- wk <- switch(info$species_group, Mammal = "LIPIDWT%", "LNMEA") -->
+<!-- plot.auxiliary(data, info, auxiliary_id = c("concentration", wk, "C13D", "N15D"), xykey.cex = 1.2) -->
+<!-- ``` -->
+
+
+
 #### Assessments (related `r txt_compounds`)
 
 ```{r, include = FALSE}
@@ -347,7 +369,7 @@ ok <- ! info$detGroup %in% "Imposex"
 ```
 
 ```{asis, eval = !ok}
-<br> 
+<br>
 No related responses assessed.
 ```
 
@@ -364,7 +386,7 @@ ok <- ! info$detGroup %in% "Imposex"
 ```
 
 ```{asis, eval = !ok}
-<br> 
+<br>
 No related responses assessed.
 ```
 
@@ -386,12 +408,12 @@ if (info$detGroup == "Imposex") {
   anova_ok <- !is.null(coefficients) | !is.null(anova)
 } else {
   anova_ok <- !is.null(anova) && nrow(anova) > 1
-}  
+}
 ```
 
 
 ```{asis, eval = !anova_ok}
-Insufficient data
+There are insufficient data for a trend assessment.
 <br>
 ```
 
@@ -409,7 +431,7 @@ Insufficient data
 
 if (info$detGroup == "Imposex") {
   nyear <- assessment$summary$clLY
-  nyear_ok <- !is.na(nyear)    
+  nyear_ok <- !is.na(nyear)
 } else {
   nyear <- assessment$summary$nyfit
   nyear_ok <- !is.null(nyear) && nyear >= 3
@@ -425,10 +447,11 @@ if (!nyear_ok) {
 }
 ```
 
-```{asis, eval = !status_ok}
+```{asis, eval = !status_ok & info$purpose != "AMAP"}
 `r status_txt`
 <br>
 ```
+
 
 ```{r, eval = status_ok & info$detGroup != "Imposex", child = "assessment platform status.Rmd"}
 ```
@@ -437,11 +460,68 @@ if (!nyear_ok) {
 ```
 
 
+<br>
+
+```{r interpretation, eval = anova_ok, include = FALSE}
+wk <- assessment$summary
+wk_year <- unique(assessment$data$year)
+wk_n <- length(wk_year)
+wk_seq <- length(wk_year) == max(wk_year) - min(wk_year) + 1
+wk_recent <- info$maxYear - info$recent.trend + 1
+
+format_p <- function(p) if (p >= 0.0001) paste0("(p = ", format(p, scientific = FALSE), ")") else "(p < 0.0001)"
+
+change_txt <- function(type = c("whole", "recent")) {
+  p <- switch(type, whole = wk$pltrend, wk$prtrend)
+  trend <- switch(type, whole = wk$ltrend, wk$rtrend)
+  paste0(
+    "Concentrations at the end of the time series were ", 
+    if (p < 0.05) paste("signficantly", if (trend > 0) "higher" else "lower", "than those ") else "not significantly different from those ",
+    switch(type, whole = "at the start of the time series", paste("in", wk_recent)), 
+    " ", format_p(p), "."
+  )
+}
+
+if (wk$p_overall >= 0.05) {
+  trend_description <- paste0("There is no significant temporal trend in the time series ", format_p(wk$p_overall), ".")
+} else if (is.na(wk$p_nonlinear)) {
+  trend_description <- paste0("There is a significant log-linear trend in the time series ", format_p(wk$p_linear), ".  Concentrations have ", if (wk$ltrend > 0) "increased" else "decreased", " by an estimated ", round(100 * (exp(wk$ltrend / 100) - 1), 1), "% per year over the course of the time series.")
+} else {
+  trend_description <- paste0(
+    "There is a significant temporal trend in the time series ", format_p(wk$p_overall), 
+    ". The trend is nonlinear ", format_p(wk$p_nonlinear), " so the shape of the trend must be assessed visually. ", 
+    change_txt("whole"), 
+    if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
+  )
+}
+```
+
+
+```{asis, eval = anova_ok}
+**Interpretation**
+
+`r trend_description`
+
+
+```
+
+
+```{asis, include = FALSE, eval = FALSE}
+The lowest detectable annual increase in the time series (two-sided test, power = 80%, size = 5%) is `r wk$dtrend_1`%. `r if (!wk_seq) paste0("Had the data been collected sequentially (rather than with gaps between years) the lowest detectable annual increase would be ", wk$dtrend_2, "%.")`  The lowest detectable annual increase with 10 years of `r if (!wk_seq) "sequential"` monitoring is `r wk$dtrend_3`%.
+
+Given the variability in the data, `r wk$dyear` years of `r if (!wk_seq) "sequential"` monitoring would be required to detect an annual increase of 10% with 80% power (two-sided test, size = 5%).
+
+The power of the time series to detect an annual increase of 10% is `r wk$dpower_1`% (two-sided test, size = 5%).  `r if (!wk_seq) paste0("With sequential monitoring, the power would be ", wk$dpower_2, "%")`.  With 10 years of `r if (!wk_seq) "sequential"` monitoring, the power would be `r wk$dpower_3`%.
+```
+
+
+
+
 ```{r tidy_up, include = FALSE}
 rm(list = intersect(
-  objects(), 
+  objects(),
   c("AC_ok", "anova", "anova_ok", "assessment", "assessment_object", "change_txt", "coefficients",
-    "contrasts", "data", "determinands", "diff_txt", "dups", "good_status", "id", "info", "info_multi", 
+    "contrasts", "data", "determinands", "diff_txt", "dups", "good_status", "id", "info", "info_multi",
     "is_lognormal", "nyear", "nyear_ok", "ok", "p_txt", "pred", "rv", "status_ok", "wk")
 ))
 ```
