@@ -155,7 +155,7 @@ Units: μg kg<sup>-1</sup> lipid weight
 
 <li>
 
-Extraction: 10 October 2019
+Extraction: 15 February 2019
 
 </li>
 
@@ -193,10 +193,10 @@ Analysis of variance
 
 ``` 
                 Df      AIC     AICc   Log lik Deviance     Chisq Chi df Pr(>Chisq)
-mean             1 204.6195 206.8695 -99.30974 198.6195        NA     NA         NA
-linear           2 202.0379 206.6093 -97.01896 194.0379 4.5815551      1 0.03231787
-smooth (df = 2)  3 198.5272 206.8605 -94.26358 188.5272 5.5107525      1 0.01889991
-smooth (df = 3)  4 199.6921 214.0921 -93.84607 187.6921 0.8350185      1 0.36082538
+mean             1 204.5347 206.7847 -99.26734 198.5347        NA     NA         NA
+linear           2 201.9493 206.5207 -96.97464 193.9493 4.5854093      1 0.03224527
+smooth (df = 2)  3 198.4669 206.8003 -94.23347 188.4669 5.4823321      1 0.01920961
+smooth (df = 3)  4 199.6460 214.0460 -93.82299 187.6460 0.8209623      1 0.36489896
 ```
 
 <br>
@@ -205,8 +205,8 @@ Change in log concentration
 
 ``` 
               Year start Year end  Fit start   Fit end    Change Std error         t   Pr(>|t|)
-overall             1997     2013  0.1088056 -3.517836 -3.626641  1.608194 -2.255102 0.05057986
-last 20 years       1999     2013 -0.3747466 -3.517836 -3.143089  1.393768 -2.255102 0.05057986
+overall             1997     2013  0.1113085 -3.522523 -3.633832  1.606903 -2.261388 0.05006289
+last 20 years       1998     2013 -0.1309469 -3.522523 -3.391576  1.499776 -2.261388 0.05006289
 ```
 
 <br>
@@ -217,7 +217,8 @@ No assessment criteria <br>
 
 ### how to build this file
 
-this file was created using
+this file was created using (requires access to
+`assessment_platform.RData`)
 
 ``` r
 rmarkdown::render("README.Rmd")
