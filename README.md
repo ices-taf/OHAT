@@ -217,8 +217,7 @@ No assessment criteria <br>
 
 ### how to build this file
 
-this file was created using (requires access to
-`assessment_platform.RData`)
+this file was created using:
 
 ``` r
 rmarkdown::render("README.Rmd")
