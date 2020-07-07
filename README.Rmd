@@ -14,9 +14,9 @@ plots and tables shown below.  The link to this assessment is here:
 https://ocean.ices.dk/oat/OAT/GettrResult?seriesID=Belgium%20BCP%20HCHA%20Crangon%20crangon&matrix=Biota
 
 and can be accessed via
-https://ocean.ices.dk/oat/
+https://ocean.ices.dk/ohat/
 
-```{r child = "2020/assessment platform.Rmd"}
+```{r child = "2019/assessment platform.Rmd"}
 ```
 
 ### how to build this file

@@ -6,7 +6,7 @@ the plots and tables shown below. The link to this assessment is here:
 
 <https://ocean.ices.dk/oat/OAT/GettrResult?seriesID=Belgium%20BCP%20HCHA%20Crangon%20crangon&matrix=Biota>
 
-and can be accessed via <https://ocean.ices.dk/oat/>
+and can be accessed via <https://ocean.ices.dk/ohat/>
 
 ### Assessment plots and statistical analysis
 
@@ -59,19 +59,6 @@ in the same chemical group.
 Data (related compounds). A scatter plot matrix of the individual
 concentration measurements for all the compounds in the same chemical
 group.
-
-</li>
-
-<li class="gap">
-
-Statistical analysis. This tab summarises the fits of models with
-different amount of smoothing. The final choice is the model with the
-minimum AICc (with the caveat that a linear model is always preferred to
-a mean model if there are sufficient years of data). The tab also gives
-the contrast between the fitted values at the start and end of the
-timeseries, and over the most recent twenty years. Finally, if there are
-assessment criteria, the tab assesses status by comparing the fitted
-value at the end of the timeseries to the assessment criteria.
 
 </li>
 
@@ -185,16 +172,6 @@ Extraction: 10 October 2019
 
 ![](README_files/figure-gfm/auxiliary_data-1.png)<!-- -->
 
-<!-- #### Stable isotope data -->
-
-<!-- ```{r isotope_data, eval = ok, echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7} -->
-
-<!-- wk <- switch(info$species_group, Mammal = "LIPIDWT%", "LNMEA") -->
-
-<!-- plot.auxiliary(data, info, auxiliary_id = c("concentration", wk, "C13D", "N15D"), xykey.cex = 1.2) -->
-
-<!-- ``` -->
-
 #### Assessments (related compounds)
 
 ![](README_files/figure-gfm/multi_assessment-1.png)<!-- -->
@@ -234,14 +211,6 @@ last 20 years       1999     2013 -0.3747466 -3.517836 -3.143089  1.393768 -2.25
 **Status assessment**
 
 No assessment criteria <br>
-
-<br>
-
-**Interpretation**
-
-There is a significant log-linear trend in the time series (p = 0.0323).
-Concentrations have decreased by an estimated -20.3% per year over the
-course of the time series.
 
 ### how to build this file
 
