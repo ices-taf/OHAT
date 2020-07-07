@@ -1,5 +1,3 @@
-.libPaths("bootstrap/library")
-
 require(lattice)
 require(grid)
 require(rmarkdown)
@@ -11,7 +9,7 @@ compartment <- commandArgs(trailingOnly = TRUE)[2]
 
 load("assessment_platform.RData")
 
-render(output_file = paste(gsub(" ", "_", series), "__", gsub(" ", "_", compartment), ".html", sep = ""),
+render(output_file = paste(gsub(" ", "_", series), "__", gsub(" ", "_", compartment), "__2020.html", sep = ""),
        "assessment platform.Rmd",
        params = list(
          compartment = compartment,
