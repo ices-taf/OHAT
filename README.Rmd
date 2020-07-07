@@ -8,6 +8,11 @@ params:
   series: "Belgium BCP HCHA Crangon crangon"
 ---
 
+```{r setup, echo=FALSE}
+# stops jittering from looking like a new plot
+set.seed(20342309)
+```
+
 As an example, the code in this repository produces an html version of the
 plots and tables shown below.  The link to this assessment is here:
 
