@@ -8,11 +8,23 @@ params:
   series: must_supply
 ---
 
+```{r pagetitle, include = FALSE}
+page_title <- params$series
+page_title <- gsub("_", " ", page_title)
+page_title <- stringi::stri_trans_general(page_title, "LATIN-ASCII")
+```
+
+---
+pagetitle: `r page_title`
+---
+
 
 ```{r load_packages, include = FALSE}
 require(lattice)
 require(grid)
 require(knitr)
+
+# will also require libraries stringi and stringr to be installed, but not loaded
 
 knit_engines$set(asis = function(options) {
   if (options$echo && options$eval) knit_child(text = options$code)
@@ -32,18 +44,32 @@ determinands <- assessment_object[["determinands"]]
 assessment_object <- assessment_object[["assessment"]]
 
 
-##### get data and assessments in the station / species / determinand group ####
+##### get data and assessments in the station / determinand group ####
 
-# fileName identifies all timeSeries in same station / species / determinand group
+# biota: need further subdivision by species and matrix (contaminants only)
 # convert detGroup to character just to be on safe side!
 
 assessment_object$timeSeries <- within(assessment_object$timeSeries, {
   detGroup <- as.character(detGroup)
-  fileName <- factor(paste(filePrefix, fileGroup, sep = "_"))
 })
 
-id <- assessment_object$timeSeries[params$series, "fileName"]
-assessment_object <- ctsm.subset.assessment(assessment_object, fileName %in% id)
+var_id <- c("station", "detGroup")
+if (params$compartment == "biota") {
+  var_id <- c(var_id, "species")
+  group_id <- assessment_object$timeSeries[params$series, "detGroup"]
+  if (!group_id  %in% c("Effects", "Imposex", "Metabolites"))
+    var_id <- c(var_id, "matrix")
+  species_id <- assessment_object$timeSeries[params$series, "species"]
+  if (get.info("species", species_id, "family") %in% "Mammal")
+    var_id <- c(var_id, "AMAP_group")
+}
+
+assessment_object <- within(assessment_object, {
+  timeSeries$multi_series <- do.call("paste", timeSeries[var_id])
+})
+
+id <- assessment_object$timeSeries[params$series, "multi_series"]
+assessment_object <- ctsm.subset.assessment(assessment_object, multi_series %in% id)
 
 # sort, using determinands, to ensure everything is in the 'correct' presentational order
 
@@ -65,7 +91,7 @@ info <- with(assessment_object, c(info, timeSeries[params$series, ]))
 
 info$group <- unique(as.character(data$group))
 info$det_name <- get.info("determinand", info$determinand, "common.name")
-if (info$group %in% c("metal", "PAH.parent", "organoMetal"))
+if (info$group %in% c("Metals", "PAH_parent", "Organotins"))
   info$det_name <- tolower(info$det_name)
 
 # species info
@@ -83,7 +109,11 @@ if (info$compartment %in% "biota") {
   info$species_group <- as.character(info$species_group)
 }
 
-if (info$group %in% c("bioeffect", "imposex")) {
+if (info$compartment %in% "biota")
+  info$AMAP_group <- gsub("_", " ", info$AMAP_group)
+
+
+if (info$group %in% c("Effects", "Imposex")) {
   txt_concentration <- "level"
 } else {
   txt_concentration <- "concentration"
@@ -97,7 +127,7 @@ txt_measurements <- switch(
   "measurements"
 )
   
-txt_compounds <- if (info$group %in% c("imposex", "bioeffect")) {
+txt_compounds <- if (info$group %in% c("Imposex", "Effects", "Metabolites")) {
   "responses"
 } else {
   "compounds"
@@ -128,6 +158,20 @@ if (length(info$matrix > 1)) {
  
 info$matrix_name <- get.info("matrix", info$matrix, "name")
 
+info$matrix_name <- switch(
+  info$matrix_name, 
+  "erythrocytes (red blood cells in vertebrates)" = "red blood cells",
+  "egg homogenate of yolk and albumin" = "egg yolk and albumin",
+  "hair/fur" = "hair",
+  info$matrix_name
+)
+
+
+# sex info
+
+if (info$compartment == "biota")
+  info$sex_name <- switch(as.character(info$sex), M = "male", F = "female")
+
 
 # units 
 
@@ -139,7 +183,7 @@ args.list <- list(units = info$unit, basis = info$basis, html = TRUE, compartmen
 
 is_normalised <- info$compartment == "sediment" & !info$region %in% c("Iberian Sea", "Gulf of Cadiz")
 if (is_normalised) {
-  extra.text <- paste("normalised to", switch(info$group, metal = "5% aluminium", "2.5% organic carbon"))
+  extra.text <- paste("normalised to", switch(info$group, Metals = "5% aluminium", "2.5% organic carbon"))
   args.list <- c(args.list, extra.text)
 }  
 
@@ -153,7 +197,18 @@ if (is_AC)
   AC_id <- names(na.omit(assessment$AC))
 
 
-# is there a trend line
+
+# is there a non-parametric test of status
+
+is_nonparametric <- 
+  if (info$group %in% "Imposex") {
+    FALSE
+  } else {
+    is_AC & !is.na(assessment$summary[[paste0(AC_id[1], "below")]])
+  }
+
+
+# is there a parametric model fit
 
 is_pred <- "pred" %in% names(assessment)
 
@@ -197,10 +252,37 @@ info_multi <- within(info_multi, {
 ```
 
 
+```{r intro_txt, include = FALSE}
+intro_txt <- switch(
+  info$compartment, 
+  biota = paste(info$species_name, info$matrix_name), 
+  info$compartment
+)
+
+if (info$compartment %in% "biota" && info$species_group %in% "Mammal") 
+  intro_txt <- paste(tolower(info$AMAP_group), intro_txt)
+
+if (info$compartment %in% "biota" && info$determinand %in% "EROD")
+  intro_txt <- paste(info$sex_name, intro_txt)
+
+intro_AMAP <- info$compartment %in% "biota" && 
+  ((info$species_group %in% "Mammal" & info$station %in% "Svalbard") | 
+     (info$species_group %in% "Bird" & info$station %in% "Svalbard-Kongsfjorden area"))
+
+if (info$compartment %in% "biota" && info$species_group %in% "Mammal" && info$station %in% "Svalbard")
+  intro_txt2 <- "The data were kindly provided by the Norwegian Polar Institute (in accordance with CC-BY 4.0 licence)."
+
+if (info$compartment %in% "biota" && info$species_group %in% "Bird" && info$station %in% "Svalbard-Kongsfjorden area")
+  intro_txt2 <- paste(
+    "These data were kindly provided by Olivier Chastel (CEBC), Børge Moe (NINA), ",
+    "Geir Wing Gabrielsen (NPI), Jan Ove Bustnes (NINA) and Claus Bech (NTNU). ", 
+    "The work was supported by the French Polar Institute and the The Norwegian Research Council."
+  )
+```
 
 ### Assessment plots and statistical analysis {.tabset}
 
-This report provides details of the assessment of `r paste(info$det_name, txt_concentrations)` in `r switch(info$compartment, biota = info$species_name, info$compartment)` at station `r info$stationName`.  `r if (is_normalised) paste0("Concentrations are ", extra.text, " unless otherwise stated.")`
+This report provides details of the assessment of `r paste(info$det_name, txt_concentrations)` in `r intro_txt` at station `r info$stationName`. `r if (intro_AMAP) intro_txt2``r if (is_normalised) paste0("Concentrations are ", extra.text, " unless otherwise stated.")`
 
 <ul>
 <li class = "gap">Timeseries metadata.  Key information about the timeseries.</li>
@@ -215,7 +297,8 @@ txt_trend1 <- paste(
 txt_trend2 <- switch(
   info$distribution,
   lognormal = paste0(
-    "The points are the annual medians of the individual log ", txt_measurements, "."
+    "The points are the annual medians of the individual log ", txt_measurements, 
+    ", with solid circles denoting uncensored values and < denoting less-than values."
   ),
   "The points are the annual means of the individual measurements."
 )
@@ -223,11 +306,13 @@ txt_trend2 <- switch(
 txt_trend3 <- switch(
   info$distribution, 
   lognormal = paste0(
-    "The points are the individual ", txt_measurements, ", with a < denoting a less-than value."
-    ), 
+    "The points are the individual ", txt_measurements, 
+    ", with + denoting uncensored values, ", 
+    "d or q denoting values below the limit of detection or quantification and ",
+    "< denoting other less-than values."
+  ), 
   "The points are the individual measurements."
 )
-
 
 txt_AC <- paste(
   "The assessment", 
@@ -242,7 +327,7 @@ txt_AC <- paste(
 ```  
 
 ```{asis, eval = !is_pred}
-<li class = "gap">Assessment plot. `r txt_trend2`, `r if (info$distribution == "lognormal")  txt_trend1`. However, there are insufficient years to fit a model to these data.  `r if (is_AC) txt_AC`</li>
+<li class = "gap">Assessment plot. `r txt_trend2` `r if (info$distribution == "lognormal")  txt_trend1` However, there are too few years, or too many less-than values, to fit a model to these data.  `r if (is_AC) txt_AC`</li>
 <li class = "gap">Trend with data.  `r txt_trend3`</li>
 ```  
 
@@ -252,7 +337,7 @@ txt_AC <- paste(
 ```
 
 ```{asis, eval = info$compartment %in% "sediment"}
-<li class = "gap">Auxiliary data.  The individual concentration measurements`r if (is_normalised) paste0(", both non-normalised and ", extra.text, ",")` with supporting information: aluminium content (%) of the sample; organic carbon content (%) of the sample.</li>
+<li class = "gap">Auxiliary data.  The individual concentration measurements`r if (is_normalised) paste0(", both non-normalised and ", extra.text, ",")` with supporting information: aluminium content (%) of the sample; `r if (info$group %in% "Metals") "lithium" else "carbon"` content (%) of the sample.</li>
 ```
 
 ```{asis, eval = info$compartment %in% "water"}
@@ -269,23 +354,58 @@ txt_AC <- paste(
 ```{r txt_related_compounds, include = FALSE}
 txt_related1 <- switch(
   info$group, 
-  imposex = "There are no related responses.",
-  bioeffect = "Assessment plots for all the biological effects measured at this station.",
-  "Assessment plots for all the compounds in the same chemical group."
+  Imposex = "There are no related responses.",
+  Effects = paste(
+    "Assessment plots for all the biological effects (other than imposex and PAH metabolites) measured in", 
+    info$species_name, "at this station."
+  ),
+  Metabolites = paste(
+    "Assessment plots for all the PAH metabolites measured in", 
+    info$species_name, "at this station."
+  ),
+  paste0(
+    "Assessment plots for all the compounds in the same chemical group measured ", 
+    if (info$compartment == "biota") paste0("in ", info$species_name, " ", info$matrix_name, " "),
+    "at this station."
+  )
 )
 
 txt_related2 <- switch(
   info$group, 
-  imposex = "There are no related responses.",
-  bioeffect = "A scatter plot matrix of all the individual biological effects measurements at this station",
-  "A scatter plot matrix of the individual concentration measurements for all the compounds in the same chemical group."
+  Imposex = "There are no related responses.",
+  Effects = paste(
+    "A scatter plot matrix of all the individual biological effects measurements", 
+    "(other than imposex and PAH metabolites) in", 
+    info$species_name, "at this station."
+  ),
+  Metabolites = paste(
+    "A scatter plot matrix of all the individual PAH metabolite measurements in", 
+    info$species_name, "at this station."
+  ),
+  paste0(
+    "A scatter plot matrix of all the individual concentration measurements for all the ",
+    "compounds in the same chemical group ",
+    if (info$compartment == "biota") paste0("in ", info$species_name, " ", info$matrix_name, " "),
+    "at this station."
+  )
 )
 ```
 
 <li class = "gap">Assessment (related `r txt_compounds`).  `r txt_related1`</li>
 <li class = "gap">Data (related `r txt_compounds`). `r txt_related2`</li>
 
-<li class = "gap">Statistical analysis. This tab summarises the fits of models with different amount of smoothing. The final choice is the model with the minimum AICc (with the caveat that a linear model is always preferred to a mean model if there are sufficient years of data). The tab also gives the contrast between the fitted values at the start and end of the timeseries, and over the most recent twenty years.  Finally, if there are assessment criteria, the tab assesses status by comparing the fitted value at the end of the timeseries to the assessment criteria.</li>
+```{asis, eval = is_pred}
+<li class = "gap">Statistical analysis. This tab summarises the fits of models with different amount of smoothing. The final choice is the model with the minimum AICc (with the caveat that a linear model is always preferred to a mean model if there are sufficient years of data). The tab also gives the contrast between the fitted values at the start and end of the timeseries, and over the most recent twenty years.  `r if(is_AC) "Finally, the tab assesses status by comparing the fitted value at the end of the timeseries to the assessment criteria."`</li>
+```
+
+```{asis, eval = !is_pred & !is_nonparametric}
+<li class = "gap">Statistical analysis. No statistical analysis was done on these data.</li>
+```
+
+```{asis, eval = !is_pred & is_nonparametric}
+<li class = "gap">Statistical analysis. This tab gives the results of a non-parametric status assessment.</li>
+```
+
 
 </ul>
 
@@ -303,16 +423,29 @@ txt_related2 <- switch(
 <li>Station name: `r info$stationName`</li>
 <li>Station latitude: `r format(info$latitude, digits = 2, nsmall = 2)`</li>
 <li class = "gap">Station longitude: `r format(info$longitude, digits = 2, nsmall = 2)`</li>
-<li>Media: `r info$compartment`</li>
+<li>Compartment: `r info$compartment`</li>
 
 ```{asis, eval = info$compartment %in% "biota"}
 <li>Species latin name: `r info$species`</li>
 <li>Species common name: `r info$species_name`</li>  
 ```
 
-<li class = "gap">Matrix: `r info$matrix_name`</li>
+```{asis, eval = info$compartment %in% "biota" && info$species_group %in% "Mammal"}
+<li>Sex / age group: `r tolower(info$AMAP_group)`</li>
+```
+
+```{asis, eval = info$determinand %in% "EROD"}
+<li>Sex: `r info$sex_name`</li>
+```
+
+<li class = "gap">`r switch(info$compartment, biota = "Tissue", "Matrix")`: `r info$matrix_name`</li>
 <li>Determinand code: `r info$determinand`</li>
 <li>Determinand name: `r info$det_name`</li>
+
+```{asis, eval = info$detGroup %in% "PAH metabolites"}
+<li>Method of chemical analysis: `r info$metoa`</li>
+```
+
 <li class = "gap">Units: `r info$unit_text`</li>
 <li>Extraction: `r info$extraction`</li>
 </ul>
@@ -348,7 +481,11 @@ No auxiliary variables currently plotted.
 ```
 
 ```{r auxiliary_data, eval = ok, echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7}
-plot.auxiliary(data, info, xykey.cex = 1.2)
+auxiliary_id <- "default"
+if (info$compartment %in% "sediment" & info$group %in% "Metals") 
+  auxiliary_id <- c("value", "concentration", "AL", "LI")
+
+plot.auxiliary(data, info, auxiliary_id = auxiliary_id, xykey.cex = 1.2)
 ```
 
 
@@ -412,15 +549,26 @@ if (info$detGroup == "Imposex") {
 ```
 
 
-```{asis, eval = !anova_ok}
-There are insufficient data for a trend assessment.
+```{asis, eval = !anova_ok & !info$group %in% c("Effects", "Imposex")}
+There are too few years, or too many less-than values, for a trend assessment.
 <br>
 ```
 
-```{r, eval = anova_ok & info$detGroup != "Imposex", child = "assessment platform trend.Rmd"}
+```{asis, eval = !anova_ok & info$group %in% "Effects"}
+There are too few years for a trend assessment.
+<br>
 ```
 
-```{r, eval = anova_ok & info$detGroup == "Imposex", child = "assessment platform trend imposex.Rmd"}
+```{asis, eval = !anova_ok & info$group %in% "Imposex"}
+There is no trend assessment because there are too few years (or occasionally because all the measurements are zero).
+<br>
+```
+
+
+```{r, eval = anova_ok & info$detGroup != "Imposex", child = "assessment_platform_trend.Rmd"}
+```
+
+```{r, eval = anova_ok & info$detGroup == "Imposex", child = "assessment_platform_trend_imposex.Rmd"}
 ```
 
 <br>
@@ -438,72 +586,244 @@ if (info$detGroup == "Imposex") {
 }
 
 AC_ok <- !all(is.na(assessment$AC))
-status_ok <- nyear_ok && AC_ok
+status_param <- nyear_ok && AC_ok
 
-if (!nyear_ok) {
-  status_txt <- "Insufficient data"
-} else if (!AC_ok) {
-  status_txt <- "No assessment criteria"
+status_ok <- status_param | is_nonparametric
+
+if (is_nonparametric) {
+  is_below <- assessment$summary[paste0(AC_id, "below")]
+  is_below <- unlist(is_below)
+  is_below <- is_below %in% "below"
+  names(is_below) <- AC_id
+  
+  EAC_id <- setdiff(AC_id, "BAC")
+  
+  if ("BAC" %in% AC_id & is_below["BAC"]) 
+    status_txt <- "significantly below the BAC (p < 0.05)."
+  else if ("BAC" %in% AC_id & length(AC_id) == 1)
+    status_txt <- "not significantly below the BAC (p > 0.05)."
+  else if (any(is_below) & length(AC_id) == 2)
+    status_txt <- paste(
+      "significantly below the", EAC_id, 
+      "(p < 0.05), but not significiantly below the BAC (p > 0.05)."
+    )
+  else if (any(is_below) & length(AC_id) == 1)
+    status_txt <- paste("significantly below the", EAC_id, "(p < 0.05).")
+  else 
+    status_txt <- paste("not significantly below the", EAC_id, "(p > 0.05).")
+}
+
+```
+
+
+```{asis, eval = !status_ok}
+`r if (!AC_ok) "There are no assessment criteria so no status assessment is possible." else if (!nyear_ok) "There are insufficient data to make a status assessment."`
+<br>
+```
+
+```{asis, eval = !status_param & is_nonparametric}
+A sign test based on the last five monitoring years shows that the mean `r txt_concentration` was `r status_txt`
+<br>
+```
+
+```{r, eval = status_param & info$detGroup != "Imposex", child = "assessment_platform_status.Rmd"}
+```
+
+```{r, eval = status_param & info$detGroup == "Imposex", child = "assessment_platform_status_imposex.Rmd"}
+```
+
+
+<br>
+
+```{r interpretation_setup, include = FALSE}
+format_p <- function(p) {
+  if (p >= 0.0001) {
+    p <- round(p, 4)
+    paste0("(p = ", format(p, scientific = FALSE, nsmall = 4), ")")
+  } else {
+    "(p < 0.0001)"
+  }
 }
 ```
 
-```{asis, eval = !status_ok & info$purpose != "AMAP"}
-`r status_txt`
-<br>
-```
 
-
-```{r, eval = status_ok & info$detGroup != "Imposex", child = "assessment platform status.Rmd"}
-```
-
-```{r, eval = status_ok & info$detGroup == "Imposex", child = "assessment platform status imposex.Rmd"}
-```
-
-
-<br>
-
-```{r interpretation, eval = anova_ok, include = FALSE}
+```{r interpretation_trend, eval = anova_ok & !info$group %in% c("Effects", "Imposex"), include = FALSE}
 wk <- assessment$summary
 wk_year <- unique(assessment$data$year)
 wk_n <- length(wk_year)
 wk_seq <- length(wk_year) == max(wk_year) - min(wk_year) + 1
 wk_recent <- info$maxYear - info$recent.trend + 1
 
-format_p <- function(p) if (p >= 0.0001) paste0("(p = ", format(p, scientific = FALSE), ")") else "(p < 0.0001)"
 
 change_txt <- function(type = c("whole", "recent")) {
   p <- switch(type, whole = wk$pltrend, wk$prtrend)
   trend <- switch(type, whole = wk$ltrend, wk$rtrend)
   paste0(
-    "Concentrations at the end of the time series were ", 
+    stringr::str_to_sentence(txt_concentrations),
+    " at the end of the time series were ", 
     if (p < 0.05) paste("signficantly", if (trend > 0) "higher" else "lower", "than those ") else "not significantly different from those ",
     switch(type, whole = "at the start of the time series", paste("in", wk_recent)), 
-    " ", format_p(p), "."
+    " ", format_p(p), ". "
   )
 }
 
-if (wk$p_overall >= 0.05) {
-  trend_description <- paste0("There is no significant temporal trend in the time series ", format_p(wk$p_overall), ".")
-} else if (is.na(wk$p_nonlinear)) {
-  trend_description <- paste0("There is a significant log-linear trend in the time series ", format_p(wk$p_linear), ".  Concentrations have ", if (wk$ltrend > 0) "increased" else "decreased", " by an estimated ", round(100 * (exp(wk$ltrend / 100) - 1), 1), "% per year over the course of the time series.")
-} else {
-  trend_description <- paste0(
-    "There is a significant temporal trend in the time series ", format_p(wk$p_overall), 
-    ". The trend is nonlinear ", format_p(wk$p_nonlinear), " so the shape of the trend must be assessed visually. ", 
-    change_txt("whole"), 
-    if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
-  )
-}
+trend_description <- 
+  if (wk$p_overall >= 0.05) {
+    paste0("There is no significant temporal trend in the time series ", format_p(wk$p_overall), ".")
+  } else if (is.na(wk$p_nonlinear)) {
+    paste0(
+      "There is a significant log-linear trend in the time series ", 
+      format_p(wk$p_linear), 
+      ". ",
+      stringr::str_to_sentence(txt_concentrations),
+      " have ", 
+      if (wk$ltrend > 0) "increased" else "decreased", 
+      " by an estimated ", 
+      round(100 * (exp(wk$ltrend / 100) - 1), 1), 
+      "% per year over the course of the time series."
+    )
+  } else {
+    paste0(
+      "There is a significant temporal trend in the time series ", 
+      format_p(wk$p_overall), 
+      ". The trend is nonlinear ", 
+      format_p(wk$p_nonlinear), " 
+      so the shape of the trend must be assessed visually. ", 
+      change_txt("whole"), 
+      if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
+    )
+  }
 ```
 
 
-```{asis, eval = anova_ok}
+```{r interpretation_status, eval = status_ok & !info$group %in% c("Effects", "Imposex"), include = FALSE}
+
+status_txt_health <- if ("MPC" %in% AC_id) "human health." else "marine life."
+
+if (is_nonparametric) {
+  status_txt2 <- 
+    if ("BAC" %in% AC_id & is_below["BAC"]) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore at background levels."
+      )
+    } else if ("BAC" %in% AC_id & length(AC_id) == 1) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore above background levels, but, as there is not an environmental threshold,", 
+        "it is not possible to say whether the",
+        txt_concentrations, 
+        "would harm", 
+        status_txt_health
+      )
+    } else if (any(is_below) & length(AC_id) == 2) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore above background levels but unlikely to harm", 
+        status_txt_health
+      ) 
+    } else if (any(is_below) & length(AC_id) == 1) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore unlikely to harm", 
+        status_txt_health
+      ) 
+    } else {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "could therefore harm",
+        status_txt_health
+      )
+    }
+}
+
+# have to update status_txt if done a parametric test - this should be rationalised in a single status file
+
+if (status_param) {
+  EAC_id <- setdiff(AC_id, "BAC")
+  
+  AC_p <- rv[[p_txt]]
+  names(AC_p) <- row.names(rv)
+
+  status_txt <-
+    if ("BAC" %in% AC_id & AC_p["BAC"] < 0.05) {
+      paste0("significantly below the BAC ", format_p(AC_p["BAC"]), ".")
+    } else if ("BAC" %in% AC_id & length(AC_id) == 1) {
+      paste0("not significantly below the BAC ", format_p(AC_p["BAC"]), ".")
+    } else if (any(AC_p < 0.05) & length(AC_id) == 2) {
+      paste0(
+        "significantly below the ", EAC_id, " ", format_p(AC_p[EAC_id]),
+        ", but not significiantly below the BAC ", format_p(AC_p["BAC"]), "."
+      )
+    } else if (any(AC_p < 0.05) & length(AC_id) == 1) {
+      paste0("significantly below the ", EAC_id, " ", format_p(AC_p[EAC_id]), ".")
+    }    
+  else {
+      paste0("not significantly below the ", EAC_id, " ", format_p(AC_p[EAC_id]), ".")
+    }
+  
+  status_txt2 <- 
+    if ("BAC" %in% AC_id & AC_p["BAC"] < 0.05) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore at background levels."
+      )
+    } else if ("BAC" %in% AC_id & length(AC_id) == 1) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore above background levels, but, as there is not an environmental threshold,", 
+        "it is not possible to say whether the",
+        txt_concentrations, 
+        "would harm", 
+        status_txt_health
+      )
+    } else if (any(AC_p < 0.05) & length(AC_id) == 2) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore above background levels but unlikely to harm", 
+        status_txt_health
+      ) 
+    } else if (any(AC_p < 0.05) & length(AC_id) == 1) {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "were therefore unlikely to harm", 
+        status_txt_health
+      ) 
+    } else {
+      paste(
+        stringr::str_to_sentence(txt_concentrations),
+        "could therefore harm",
+        status_txt_health
+      )
+    }
+
+}
+
+status_description <- paste(
+  stringr::str_to_sentence(txt_concentrations),
+  "at the end of the time series were",
+  status_txt, 
+  status_txt2
+)
+ 
+
+```
+
+
+
+
+```{asis, eval = (anova_ok | status_ok) & !(info$group %in% c("Effects", "Imposex"))}
 **Interpretation**
 
-`r trend_description`
+`r if (anova_ok) trend_description`
 
+`r if (status_ok) status_description`
+
+<br>
 
 ```
+
+
 
 
 ```{asis, include = FALSE, eval = FALSE}
