@@ -6,11 +6,11 @@ rv <- with(assessment, {
     out <- summary[c("meanLY", "clLY", id)]
     names(out)[3] <- "AC"
     out
-  }) 
+  })
 })
-               
+
 rv <- do.call("rbind", rv)
-               
+
 rv <- within(rv,  p <- ifelse(clLY < AC, "<0.05", ">0.05"))
 names(rv) <- c("Fitted value", "Upper CL", "Ref value", "Pr(>Ref)")
 ```
@@ -18,4 +18,3 @@ names(rv) <- c("Fitted value", "Upper CL", "Ref value", "Pr(>Ref)")
 ```{r, echo = FALSE, comment = NA}
 rv
 ```
-
