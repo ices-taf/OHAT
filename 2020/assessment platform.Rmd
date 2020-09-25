@@ -1,5 +1,5 @@
 ---
-output: 
+output:
   html_document:
     css: assessment_platform.css
 
@@ -99,12 +99,12 @@ if (info$group %in% c("Metals", "PAH_parent", "Organotins"))
 if (info$compartment %in% "biota") {
   info$species_name <- get.info("species", info$species, "common.name")
   ok <- sapply(
-    c("European", "Manila", "Atlantic", "Mediteranean", "Baltic", "Eurasian"), 
-    grepl, 
+    c("European", "Manila", "Atlantic", "Mediteranean", "Baltic", "Eurasian"),
+    grepl,
     info$species_name
   )
   if (!any(ok)) info$species_name <- tolower(info$species_name)
-  
+
   info$species_group <- get.info("species", info$species, "family")
   info$species_group <- as.character(info$species_group)
 }
@@ -122,17 +122,17 @@ if (info$group %in% c("Effects", "Imposex")) {
 txt_concentrations <- paste0(txt_concentration, "s")
 
 txt_measurements <- switch(
-  txt_concentration, 
+  txt_concentration,
   concentration = "concentration measurements",
   "measurements"
 )
-  
+
 txt_compounds <- if (info$group %in% c("Imposex", "Effects", "Metabolites")) {
   "responses"
 } else {
   "compounds"
 }
-  
+
 
 info$distribution <- get.info("determinand", info$determinand, "distribution")
 
@@ -148,18 +148,18 @@ if (is.na(info$stationName)) info$stationName <- info$station
 
 info$matrix <- unique(as.character(data$matrix))
 
-if (params$compartment != "sediment" & length(info$matrix) > 1) 
+if (params$compartment != "sediment" & length(info$matrix) > 1)
   cat("Error: multiple matrices - need to investigate")
 
 if (length(info$matrix > 1)) {
   wk <- table(as.character(data$matrix))
   info$matrix <- names(wk[which.max(wk)])
 }
- 
+
 info$matrix_name <- get.info("matrix", info$matrix, "name")
 
 info$matrix_name <- switch(
-  info$matrix_name, 
+  info$matrix_name,
   "erythrocytes (red blood cells in vertebrates)" = "red blood cells",
   "egg homogenate of yolk and albumin" = "egg yolk and albumin",
   "hair/fur" = "hair",
@@ -173,7 +173,7 @@ if (info$compartment == "biota")
   info$sex_name <- switch(as.character(info$sex), M = "male", F = "female")
 
 
-# units 
+# units
 
 info$unit <- as.character(get.info("determinand", info$determinand, "unit", info$compartment))
 
@@ -185,7 +185,7 @@ is_normalised <- info$compartment == "sediment" & !info$region %in% c("Iberian S
 if (is_normalised) {
   extra.text <- paste("normalised to", switch(info$group, Metals = "5% aluminium", "2.5% organic carbon"))
   args.list <- c(args.list, extra.text)
-}  
+}
 
 info$unit_text <- do.call(label.units, args.list)
 
@@ -200,7 +200,7 @@ if (is_AC)
 
 # is there a non-parametric test of status
 
-is_nonparametric <- 
+is_nonparametric <-
   if (info$group %in% "Imposex") {
     FALSE
   } else {
@@ -235,10 +235,10 @@ if (any(duplicated(info_multi$plotNames))) {
     info_multi$determinand, assessment_object$timeSeries$level6name, sep = "\n")[dups]
   info_multi$plotNames$assessment[dups] <- paste(
     info_multi$determinand, assessment_object$timeSeries$level6name)[dups]
-  if (any(duplicated(info_multi$plotNames$data))) 
+  if (any(duplicated(info_multi$plotNames$data)))
     cat("Error: duplicate plotting names - need to extend coding")
 }
-  
+
 info_multi$matrix <- with(assessment_object$data, tapply(matrix, seriesID, function(x) {
   out <- table(as.character(x))
   names(out[which.max(out)])
@@ -254,19 +254,19 @@ info_multi <- within(info_multi, {
 
 ```{r intro_txt, include = FALSE}
 intro_txt <- switch(
-  info$compartment, 
-  biota = paste(info$species_name, info$matrix_name), 
+  info$compartment,
+  biota = paste(info$species_name, info$matrix_name),
   info$compartment
 )
 
-if (info$compartment %in% "biota" && info$species_group %in% "Mammal") 
+if (info$compartment %in% "biota" && info$species_group %in% "Mammal")
   intro_txt <- paste(tolower(info$AMAP_group), intro_txt)
 
 if (info$compartment %in% "biota" && info$determinand %in% "EROD")
   intro_txt <- paste(info$sex_name, intro_txt)
 
-intro_AMAP <- info$compartment %in% "biota" && 
-  ((info$species_group %in% "Mammal" & info$station %in% "Svalbard") | 
+intro_AMAP <- info$compartment %in% "biota" &&
+  ((info$species_group %in% "Mammal" & info$station %in% "Svalbard") |
      (info$species_group %in% "Bird" & info$station %in% "Svalbard-Kongsfjorden area"))
 
 if (info$compartment %in% "biota" && info$species_group %in% "Mammal" && info$station %in% "Svalbard")
@@ -275,7 +275,7 @@ if (info$compartment %in% "biota" && info$species_group %in% "Mammal" && info$st
 if (info$compartment %in% "biota" && info$species_group %in% "Bird" && info$station %in% "Svalbard-Kongsfjorden area")
   intro_txt2 <- paste(
     "These data were kindly provided by Olivier Chastel (CEBC), Børge Moe (NINA), ",
-    "Geir Wing Gabrielsen (NPI), Jan Ove Bustnes (NINA) and Claus Bech (NTNU). ", 
+    "Geir Wing Gabrielsen (NPI), Jan Ove Bustnes (NINA) and Claus Bech (NTNU). ",
     "The work was supported by the French Polar Institute and the The Norwegian Research Council."
   )
 ```
@@ -290,33 +290,33 @@ This report provides details of the assessment of `r paste(info$det_name, txt_co
 ```{r txt_variables, include = FALSE}
 txt_trend1 <- paste(
   "The",
-  if (is_pred) "trend is" else "points are", 
+  if (is_pred) "trend is" else "points are",
   "plotted on the log scale, with the axis labels back-transformed for ease of interpretation."
 )
 
 txt_trend2 <- switch(
   info$distribution,
   lognormal = paste0(
-    "The points are the annual medians of the individual log ", txt_measurements, 
+    "The points are the annual medians of the individual log ", txt_measurements,
     ", with solid circles denoting uncensored values and < denoting less-than values."
   ),
   "The points are the annual means of the individual measurements."
 )
-  
+
 txt_trend3 <- switch(
-  info$distribution, 
+  info$distribution,
   lognormal = paste0(
-    "The points are the individual ", txt_measurements, 
-    ", with + denoting uncensored values, ", 
+    "The points are the individual ", txt_measurements,
+    ", with + denoting uncensored values, ",
     "d or q denoting values below the limit of detection or quantification and ",
     "< denoting other less-than values."
-  ), 
+  ),
   "The points are the individual measurements."
 )
 
 txt_AC <- paste(
-  "The assessment", 
-  if (is_AC && length(AC_id) == 1) "criterion is" else "criteria are", 
+  "The assessment",
+  if (is_AC && length(AC_id) == 1) "criterion is" else "criteria are",
   "indicated on the right hand side of the plot and by horizontal dashed lines (if within the range of the data)."
 )
 ```
@@ -324,12 +324,12 @@ txt_AC <- paste(
 ```{asis, eval = is_pred}
 <li class = "gap">Assessment plot.  The fitted trend (solid line) with pointwise 90% confidence bands (grey shaded areas).  `r if (info$distribution == "lognormal") txt_trend1` `r txt_trend2` `r if (is_AC) txt_AC`</li>
 <li class = "gap">Trend with data.  The fitted trend with pointwise 90% confidence bands.  `r txt_trend3`</li>
-```  
+```
 
 ```{asis, eval = !is_pred}
 <li class = "gap">Assessment plot. `r txt_trend2` `r if (info$distribution == "lognormal")  txt_trend1` However, there are too few years, or too many less-than values, to fit a model to these data.  `r if (is_AC) txt_AC`</li>
 <li class = "gap">Trend with data.  `r txt_trend3`</li>
-```  
+```
 
 
 ```{asis, eval = info$compartment %in% "biota"}
@@ -353,33 +353,33 @@ txt_AC <- paste(
 
 ```{r txt_related_compounds, include = FALSE}
 txt_related1 <- switch(
-  info$group, 
+  info$group,
   Imposex = "There are no related responses.",
   Effects = paste(
-    "Assessment plots for all the biological effects (other than imposex and PAH metabolites) measured in", 
+    "Assessment plots for all the biological effects (other than imposex and PAH metabolites) measured in",
     info$species_name, "at this station."
   ),
   Metabolites = paste(
-    "Assessment plots for all the PAH metabolites measured in", 
+    "Assessment plots for all the PAH metabolites measured in",
     info$species_name, "at this station."
   ),
   paste0(
-    "Assessment plots for all the compounds in the same chemical group measured ", 
+    "Assessment plots for all the compounds in the same chemical group measured ",
     if (info$compartment == "biota") paste0("in ", info$species_name, " ", info$matrix_name, " "),
     "at this station."
   )
 )
 
 txt_related2 <- switch(
-  info$group, 
+  info$group,
   Imposex = "There are no related responses.",
   Effects = paste(
-    "A scatter plot matrix of all the individual biological effects measurements", 
-    "(other than imposex and PAH metabolites) in", 
+    "A scatter plot matrix of all the individual biological effects measurements",
+    "(other than imposex and PAH metabolites) in",
     info$species_name, "at this station."
   ),
   Metabolites = paste(
-    "A scatter plot matrix of all the individual PAH metabolite measurements in", 
+    "A scatter plot matrix of all the individual PAH metabolite measurements in",
     info$species_name, "at this station."
   ),
   paste0(
@@ -427,7 +427,7 @@ txt_related2 <- switch(
 
 ```{asis, eval = info$compartment %in% "biota"}
 <li>Species latin name: `r info$species`</li>
-<li>Species common name: `r info$species_name`</li>  
+<li>Species common name: `r info$species_name`</li>
 ```
 
 ```{asis, eval = info$compartment %in% "biota" && info$species_group %in% "Mammal"}
@@ -476,13 +476,13 @@ ok <- params$compartment %in% c("biota", "sediment")
 ```
 
 ```{asis, eval = !ok}
-<br> 
+<br>
 No auxiliary variables currently plotted.
 ```
 
 ```{r auxiliary_data, eval = ok, echo = FALSE, message = FALSE, warning = FALSE, fig.width = 9, fig.height = 7}
 auxiliary_id <- "default"
-if (info$compartment %in% "sediment" & info$group %in% "Metals") 
+if (info$compartment %in% "sediment" & info$group %in% "Metals")
   auxiliary_id <- c("value", "concentration", "AL", "LI")
 
 plot.auxiliary(data, info, auxiliary_id = auxiliary_id, xykey.cex = 1.2)
@@ -595,21 +595,21 @@ if (is_nonparametric) {
   is_below <- unlist(is_below)
   is_below <- is_below %in% "below"
   names(is_below) <- AC_id
-  
+
   EAC_id <- setdiff(AC_id, "BAC")
-  
-  if ("BAC" %in% AC_id & is_below["BAC"]) 
+
+  if ("BAC" %in% AC_id & is_below["BAC"])
     status_txt <- "significantly below the BAC (p < 0.05)."
   else if ("BAC" %in% AC_id & length(AC_id) == 1)
     status_txt <- "not significantly below the BAC (p > 0.05)."
   else if (any(is_below) & length(AC_id) == 2)
     status_txt <- paste(
-      "significantly below the", EAC_id, 
+      "significantly below the", EAC_id,
       "(p < 0.05), but not significiantly below the BAC (p > 0.05)."
     )
   else if (any(is_below) & length(AC_id) == 1)
     status_txt <- paste("significantly below the", EAC_id, "(p < 0.05).")
-  else 
+  else
     status_txt <- paste("not significantly below the", EAC_id, "(p > 0.05).")
 }
 
@@ -660,36 +660,36 @@ change_txt <- function(type = c("whole", "recent")) {
   trend <- switch(type, whole = wk$ltrend, wk$rtrend)
   paste0(
     stringr::str_to_sentence(txt_concentrations),
-    " at the end of the time series were ", 
+    " at the end of the time series were ",
     if (p < 0.05) paste("signficantly", if (trend > 0) "higher" else "lower", "than those ") else "not significantly different from those ",
-    switch(type, whole = "at the start of the time series", paste("in", wk_recent)), 
+    switch(type, whole = "at the start of the time series", paste("in", wk_recent)),
     " ", format_p(p), ". "
   )
 }
 
-trend_description <- 
+trend_description <-
   if (wk$p_overall >= 0.05) {
     paste0("There is no significant temporal trend in the time series ", format_p(wk$p_overall), ".")
   } else if (is.na(wk$p_nonlinear)) {
     paste0(
-      "There is a significant log-linear trend in the time series ", 
-      format_p(wk$p_linear), 
+      "There is a significant log-linear trend in the time series ",
+      format_p(wk$p_linear),
       ". ",
       stringr::str_to_sentence(txt_concentrations),
-      " have ", 
-      if (wk$ltrend > 0) "increased" else "decreased", 
-      " by an estimated ", 
-      round(100 * (exp(wk$ltrend / 100) - 1), 1), 
+      " have ",
+      if (wk$ltrend > 0) "increased" else "decreased",
+      " by an estimated ",
+      round(100 * (exp(wk$ltrend / 100) - 1), 1),
       "% per year over the course of the time series."
     )
   } else {
     paste0(
-      "There is a significant temporal trend in the time series ", 
-      format_p(wk$p_overall), 
-      ". The trend is nonlinear ", 
-      format_p(wk$p_nonlinear), " 
-      so the shape of the trend must be assessed visually. ", 
-      change_txt("whole"), 
+      "There is a significant temporal trend in the time series ",
+      format_p(wk$p_overall),
+      ". The trend is nonlinear ",
+      format_p(wk$p_nonlinear), "
+      so the shape of the trend must be assessed visually. ",
+      change_txt("whole"),
       if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
     )
   }
@@ -701,7 +701,7 @@ trend_description <-
 status_txt_health <- if ("MPC" %in% AC_id) "human health." else "marine life."
 
 if (is_nonparametric) {
-  status_txt2 <- 
+  status_txt2 <-
     if ("BAC" %in% AC_id & is_below["BAC"]) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
@@ -710,24 +710,24 @@ if (is_nonparametric) {
     } else if ("BAC" %in% AC_id & length(AC_id) == 1) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
-        "were therefore above background levels, but, as there is not an environmental threshold,", 
+        "were therefore above background levels, but, as there is not an environmental threshold,",
         "it is not possible to say whether the",
-        txt_concentrations, 
-        "would harm", 
+        txt_concentrations,
+        "would harm",
         status_txt_health
       )
     } else if (any(is_below) & length(AC_id) == 2) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
-        "were therefore above background levels but unlikely to harm", 
+        "were therefore above background levels but unlikely to harm",
         status_txt_health
-      ) 
+      )
     } else if (any(is_below) & length(AC_id) == 1) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
-        "were therefore unlikely to harm", 
+        "were therefore unlikely to harm",
         status_txt_health
-      ) 
+      )
     } else {
       paste(
         stringr::str_to_sentence(txt_concentrations),
@@ -741,7 +741,7 @@ if (is_nonparametric) {
 
 if (status_param) {
   EAC_id <- setdiff(AC_id, "BAC")
-  
+
   AC_p <- rv[[p_txt]]
   names(AC_p) <- row.names(rv)
 
@@ -757,12 +757,12 @@ if (status_param) {
       )
     } else if (any(AC_p < 0.05) & length(AC_id) == 1) {
       paste0("significantly below the ", EAC_id, " ", format_p(AC_p[EAC_id]), ".")
-    }    
+    }
   else {
       paste0("not significantly below the ", EAC_id, " ", format_p(AC_p[EAC_id]), ".")
     }
-  
-  status_txt2 <- 
+
+  status_txt2 <-
     if ("BAC" %in% AC_id & AC_p["BAC"] < 0.05) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
@@ -771,24 +771,24 @@ if (status_param) {
     } else if ("BAC" %in% AC_id & length(AC_id) == 1) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
-        "were therefore above background levels, but, as there is not an environmental threshold,", 
+        "were therefore above background levels, but, as there is not an environmental threshold,",
         "it is not possible to say whether the",
-        txt_concentrations, 
-        "would harm", 
+        txt_concentrations,
+        "would harm",
         status_txt_health
       )
     } else if (any(AC_p < 0.05) & length(AC_id) == 2) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
-        "were therefore above background levels but unlikely to harm", 
+        "were therefore above background levels but unlikely to harm",
         status_txt_health
-      ) 
+      )
     } else if (any(AC_p < 0.05) & length(AC_id) == 1) {
       paste(
         stringr::str_to_sentence(txt_concentrations),
-        "were therefore unlikely to harm", 
+        "were therefore unlikely to harm",
         status_txt_health
-      ) 
+      )
     } else {
       paste(
         stringr::str_to_sentence(txt_concentrations),
@@ -802,10 +802,10 @@ if (status_param) {
 status_description <- paste(
   stringr::str_to_sentence(txt_concentrations),
   "at the end of the time series were",
-  status_txt, 
+  status_txt,
   status_txt2
 )
- 
+
 
 ```
 
