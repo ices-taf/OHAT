@@ -204,7 +204,7 @@ is_nonparametric <-
   if (info$group %in% "Imposex") {
     FALSE
   } else {
-    is_AC & !is.na(assessment$summary[[paste0(AC_id[1], "below")]])
+    is_AC && !is.na(assessment$summary[[paste0(AC_id[1], "below")]])
   }
 
 
