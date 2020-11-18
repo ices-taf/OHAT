@@ -19,8 +19,8 @@ if (get.info("determinand", info$determinand, "distribution") %in% "lognormal") 
   change_txt <- "Change in concentration"
 }
 
-
-contrasts <- assessment$contrasts
+        
+contrasts <- assessment$contrasts 
 row.names(contrasts) <- c("overall", paste("last", info$recent.trend, "years"))[1:nrow(contrasts)]
 
 pred <- assessment$pred
@@ -30,9 +30,9 @@ contrasts$fit1 <- pred[as.character(contrasts$start),"fit"]
 contrasts$fit2 <- pred[as.character(contrasts$end),"fit"]
 
 contrasts <- within(contrasts, t <- estimate / se)
-
+           
 contrasts <- contrasts[c("start", "end", "fit1", "fit2", "estimate", "se", "t", "p")]
-
+           
 names(contrasts) <- c(
   "Year start", "Year end", "Fit start", "Fit end", "Change", "Std error", "t", "Pr(>|t|)")
 ```

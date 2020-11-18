@@ -3,20 +3,20 @@
 is_coefficients <- !is.null(coefficients)
 
 if (is_coefficients) {
-
+        
   # estimates from index based assessment - hopefully to be phased out
-
+        
   anova_txt <- "Estimate of trend"
-
+  
   coefficients <- as.data.frame(coefficients)
   coefficients <- coefficients["year", ]
   row.names(coefficients) <- "trend"
   names(coefficients) <- c("Estimate", "Std error", "t", "Pr(>|t|)")
-
+        
 } else {
-
+        
   anova_txt <- "Analysis of variance"
-
+        
   anova <- within(assessment$anova, {
     deviance <- - twiceLogLik
     logLik <- twiceLogLik / 2
@@ -27,45 +27,45 @@ if (is_coefficients) {
     disp <- pmax(1, disp)
     rm(twiceLogLik, AIC.adj, AICc.adj)
   })
-
+  
   if (nrow(anova) <= 2) stop("no models fitted - need to recode")
 
   # get relevant rows of anova table (don't want to show all change point model fits)
   # if change point model optimal, also include linear and smooth fit
-
+        
   anovaID <- sapply(strsplit(row.names(anova), " "), "[[", 1)
-
+  
   modelID <- unlist(strsplit(assessment$method, " "))[1]
   isChange <- !(modelID %in% c("linear", "smooth"))
-
+  
   ok <- anovaID %in% c("mean", "linear", "smooth", modelID[1])
   anova <- anova[ok, ]
   anovaID <- anovaID[ok]
-
+  
   if (isChange) {
-
-    # order anova table so that change point models follow mean model, with
+          
+    # order anova table so that change point models follow mean model, with 
     # linear and smooth later on - also relabel row names to make more interpretable
-
+          
     row.names(anova) <- sapply(row.names(anova), function(x) {
       xsplit <- unlist(strsplit(x, " "))
       if (xsplit[1] != modelID) return(x)
       out <- paste(xsplit[-c(1:2)], collapse = " ")
       paste(out, "from", xsplit[1])
     })
-
+          
     ok <- anovaID %in% c("mean", modelID)
     anova <- rbind(anova[ok, ], anova[!ok, ])
     ok <- c(ok[ok], ok[!ok])
-
+    
     anova["other models:", ] <- NA
-    anova <- anova[order(c(1:length(ok), sum(ok)+0.5)), ]
+    anova <- anova[order(c(1:length(ok), sum(ok)+0.5)), ]  
     ok <- append(ok, FALSE, sum(ok))
   }
-
-
+        
+        
   # now in correct order get F values and p values
-
+        
   anova <- within(anova, {
     Fstat <- c(NA, - diff(deviance)) / disp
     Fdf <- c(NA, diff(pFixed))
@@ -76,38 +76,38 @@ if (is_coefficients) {
     }
     p <- pf(Fstat, Fdf, dfResid, lower.tail = FALSE)
   })
-
+        
   anova["mean", "dfResid"] <- NA
-
+        
   anova <- anova[c("pFixed", "AIC", "AICc", "logLik", "deviance", "disp", "Fstat", "Fdf", "dfResid", "p")]
   names(anova) <- c(
     "Df", "AIC", "AICc", "Log lik", "Deviance", "Dispersion", "F", "F_df1", "F_df2", "Pr(>F)")
-
+  
 
   # change in e.g. last decade
-
-  contrasts <- assessment$contrasts
-
+        
+  contrasts <- assessment$contrasts 
+        
   row.names(contrasts)[1] <- "overall"
   if (nrow(contrasts) == 2)
     if (isChange)
       row.names(contrasts)[2] <- paste("since", modelID)
   else
     row.names(contrasts)[2] <- paste("last", info$recent.trend, "years")
-
+  
   pred <- assessment$pred
   row.names(pred) <- pred$year
-
+  
   contrasts$fit1 <- pred[as.character(contrasts$start),"fit"]
   contrasts$fit2 <- pred[as.character(contrasts$end),"fit"]
-
+  
   contrasts <- within(contrasts, t <- estimate / se)
-
+  
   contrasts <- contrasts[c("start", "end", "fit1", "fit2", "estimate", "se", "t", "p")]
-
+  
   names(contrasts) <- c(
     "Year start", "Year end", "Fit start", "Fit end", "Change", "Std error", "t", "Pr(>|t|)")
-
+  
 }
 ```
 
@@ -121,7 +121,7 @@ if (is_coefficients) coefficients else anova
 
 ```{asis, eval = !is_coefficients}
 <br>
-Change in logit cumulative probability
+Change in logit cumulative probability 
 
 Fit on stage scale, change on logit scale
 ```
