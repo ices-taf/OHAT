@@ -18,3 +18,24 @@ render(
     series = series
   )
 )
+
+
+#Use this for executing
+if (FALSE) {
+  
+  params <- list(
+    series = "Iceland_Northeast off Iceland CD Gadus morhua LI",
+#    series = "Norway_57A Krossanes CD Mytilus edulis SB",
+    compartment = "biota"
+  )
+  
+  rm(params)
+  render(
+    "assessment_platform.Rmd",
+    params = list(
+      compartment = "biota",
+      series = "Iceland_Northeast off Iceland CD Gadus morhua LI"
+#      series = "Norway_57A Krossanes CD Mytilus edulis SB"
+    )
+  )
+}
