@@ -24,7 +24,7 @@ render(
 if (FALSE) {
   
   params <- list(
-    series = "Iceland_Northeast off Iceland CD Gadus morhua LI",
+    series = "Norway_97A2 Bodø harbour AS Mytilus edulis SB Not_applicable",
 #    series = "Norway_57A Krossanes CD Mytilus edulis SB",
     compartment = "biota"
   )
@@ -34,7 +34,7 @@ if (FALSE) {
     "assessment_platform.Rmd",
     params = list(
       compartment = "biota",
-      series = "Iceland_Northeast off Iceland CD Gadus morhua LI"
+      series = "Norway_97A2 Bodø harbour AS Mytilus edulis SB Not_applicable"
 #      series = "Norway_57A Krossanes CD Mytilus edulis SB"
     )
   )
