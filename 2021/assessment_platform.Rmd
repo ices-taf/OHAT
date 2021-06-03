@@ -37,7 +37,7 @@ options(width = 110)
 
 #### get key structures ####
 
-assessment_object <- get(paste0(params$compartment, ".web"))
+assessment_object <- get(paste0(params$compartment, "_web"))
 
 determinands <- assessment_object[["determinands"]]
 
