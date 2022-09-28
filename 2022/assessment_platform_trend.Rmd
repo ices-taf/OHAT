@@ -10,14 +10,31 @@ anova <- within(anova, {
   rm(twiceLogLik)
 })
 
-anova <- anova[c("df", "AIC", "AICc", "logLik", "deviance", "Chisq", "Chidf", "p")]
-names(anova) <- c("Df", "AIC", "AICc", "Log lik", "Deviance", "Chisq", "Chi df", "Pr(>Chisq)")
+# AICc not yet used in some biological effects models
 
-if (get.info("determinand", info$determinand, "distribution") %in% "lognormal") {
-  change_txt <- "Change in log concentration"
-} else {
-  change_txt <- "Change in concentration"
+id <- c("df", "AIC", "AICc", "logLik", "deviance", "Chisq", "Chidf", "p") 
+id_names <- c("Df", "AIC", "AICc", "Log lik", "Deviance", "Chisq", "Chi df", "Pr(>Chisq)")  
+
+if (!info$distribution %in% c("normal", "lognormal")) { 
+  pos <- match("AICc", id)
+  id <- id[-pos]
+  id_names <- id_names[-pos]
 }
+  
+anova <- anova[id]
+names(anova) <- id_names
+
+
+change_txt <- switch(
+  info$distribution, 
+  normal = "Change in concentration", 
+  survival = "Change in log time to event", 
+  lognormal = "Change in log concentration",
+  beta = "Change in logit response", 
+  "Change"
+)
+
+
 
         
 contrasts <- assessment$contrasts 

@@ -143,8 +143,6 @@ txt_compounds <- if (info$group %in% c("Imposex", "Effects", "Metabolites")) {
 } else {
   "compounds"
 }
-  
-
 
 
 # station info
@@ -256,6 +254,25 @@ status_nonparametric <-
 is_pred <- "pred" %in% names(assessment)
 
 
+# trend information 
+
+anova <- assessment$anova
+coefficients <- assessment$coefficients
+
+# deal with full model in some survival models - need to resolve
+
+if (info$distribution == "survival" && !is.null(anova) && "full" %in% row.names(anova)) {
+  pos <- match("full", row.names(anova))
+  anova <- anova[-pos, ]
+}
+
+anova_ok <- if (info$detGroup == "Imposex") {
+  !is.null(anova) || !is.null(coefficients)  
+} else {
+  !is.null(anova) && nrow(anova) > 1
+}
+
+
 #### get data, assessment and info for multiplots ####
 
 info_multi <- info
@@ -288,25 +305,29 @@ info_multi$matrix <- with(assessment_object$data, tapply(matrix, seriesID, funct
 
 info_multi$group <- info$group
 
-# NB PFDOA not selected as a determinand, so only two organofluorine ratios
+is_ratio_dets <- function(det1, det2) all(c(det1, det2) %in% info_multi$determinand)
 
 is_ratio <- switch(
   info$group, 
   Metals = info$compartment %in% "biota" && 
     info$determinand %in% c("HG", "SE") &&
-    all(c("HG", "SE") %in% info_multi$determinand),
+    is_ratio_dets("HG", "SE"),
   PAH_parent = info$compartment %in% c("biota", "sediment") &&
-    info$determinand %in% c("ANT", "PA", "FLU", "PYR", "ICDP", "BGHIP", "BAA", "CHR"),
+    info$determinand %in% c("ANT", "PA", "FLU", "PYR", "ICDP", "BGHIP", "BAA", "CHR") &&
+    (is_ratio_dets("ANT", "PA") | is_ratio_dets("FLU", "PYR") | 
+       is_ratio_dets("ICDP", "BGHIP") | is_ratio_dets("BAA", "CHR")),
   PBDEs = info$compartment %in% "biota" &&
     info$determinand %in% c("BDE47", "BD153") && 
-    all(c("BDE47", "BD153") %in% info_multi$determinand),
+    is_ratio_dets("BDE47", "BD153"),
   Organofluorines = info$compartment %in% "biota" &&
-    info$determinand %in% c("PFNA", "PFOA", "PFUNDA", "PFDA"),
+    info$determinand %in% c("PFNA", "PFOA", "PFUNDA", "PFDA", "PFTRDA", "PFDOA") &&
+    (is_ratio_dets("PFNA", "PFOA") | is_ratio_dets("PFUNDA", "PFDA") | 
+       is_ratio_dets("PFTRDA", "PFDOA")),
   Organochlorines = 
     ((info$compartment %in% "biota" && info$species_group %in% "Bivalvia") | 
        (info$compartment %in% "sediment")) && 
-    info$determinand %in% c("DDEPP", "DDTPP") && 
-    all(c("DDEPP", "DDTPP") %in% info_multi$determinand),
+    info$determinand %in% c("DDEPP", "DDTPP", "DDTOP") && 
+    (is_ratio_dets("DDEPP", "DDTPP") | is_ratio_dets("DDTOP", "DDTPP")),
   FALSE
 )
 
@@ -466,11 +487,11 @@ txt_related2 <- switch(
 ```
 
 ```{asis, eval = is_ratio & info$group %in% "Organofluorines"}
-<li class = "gap">Contaminant ratios. The ratio of compounds with an odd number of perfluorinated carbons to an even number could indicate origin (geographical), transport (long- or short-range), bioaccumulation or source (mode of industrial production), although there are currently no reference values. This tab shows two ratio plots, with the symbols denoting whether both the numerator and denominator are uncensored (+), the numerator is a less-than but the denominator is uncensored (<), the numerator is uncensored but the denominator is a less-than (>) or both are less-thans (?). A smoother is fitted if there are at least five years of data and at least 90% of observations are uncensored.  
+<li class = "gap">Contaminant ratios. The ratio of compounds with an odd number of perfluorinated carbons to an even number could indicate origin (geographical), transport (long- or short-range), bioaccumulation or source (mode of industrial production), although there are currently no reference values. This tab shows three ratio plots, with the symbols denoting whether both the numerator and denominator are uncensored (+), the numerator is a less-than but the denominator is uncensored (<), the numerator is uncensored but the denominator is a less-than (>) or both are less-thans (?). A smoother is fitted if there are at least five years of data and at least 90% of observations are uncensored.  
 ```
 
 ```{asis, eval = is_ratio & info$group %in% "Organochlorines"}
-<li class = "gap">Contaminant ratios. This tab plots the ratio of DDEPP to DDTPP. The plot provides insight into the age of the DDTS, with ratios below (above) 1 indicating new (old) contamination respectively. The symbols denote whether both DDEPP and DDTPP measurements are uncensored (+), DDEPP is a less-than but DDTPP is uncensored (<), DDEPP is uncensored but DDTPP is a less-than (>) or both are less-thans (?). A smoother is fitted if there are at least five years of data and at least 90% of observations are uncensored.
+<li class = "gap">Contaminant ratios. This tab plots the ratios of DDEPP to DDTPP and of DDTOP to DDTPP. The ratio of DDEPP to DDTPP provides insight into the age of the DDTS, with ratios below (above) 1 indicating new (old) contamination respectively. The ratio of DDTOP to DDTPP provides insight into the source of the DDTS with lower ratios (<0.3) indicating technical DDT and higher ratios (>1) indicating technical dicofol. Reference lines are plotted as horizontal dashed lines. The symbols denote whether both numerator and denominator are uncensored (+), the numerator is a less-than but the denominator is uncensored (<), the numerator is uncensored but the denominator is a less-than (>) or both are less-thans (?). A smoother is fitted if there are at least five years of data and at least 90% of observations are uncensored.
 ```
 
 ```{asis, eval = is_ratio & info$group %in% "Metals"}
@@ -478,8 +499,12 @@ txt_related2 <- switch(
 ```
 
 
+```{r, include = FALSE}
+txt <- if (anova_ok) "Finally, the tab" else "The tab also"
+```
+
 ```{asis, eval = is_pred}
-<li class = "gap">Statistical analysis. This tab summarises the fits of models with different amount of smoothing. The final choice is the model with the minimum AICc (with the caveat that a linear model is always preferred to a mean model if there are sufficient years of data). The tab also gives the contrast between the fitted values at the start and end of the timeseries, and over the most recent twenty years.  `r if (is_AC) "Finally, the tab assesses status by comparing the fitted value at the end of the timeseries to the assessment criteria."`</li>
+<li class = "gap">Statistical analysis. This tab summarises the fits of models with different amount of smoothing. The final choice is the model with the minimum `r if ("AICc" %in% names(anova)) "AICc" else "AIC"` (with the caveat that a linear model is always preferred to a mean model if there are sufficient years of data). `r if (anova_ok) "The tab also gives the contrast between the fitted values at the start and end of the timeseries, and over the most recent twenty years. "` `r if (is_AC) paste(txt, "assesses status by comparing the fitted value at the end of the timeseries to the assessment criteria.")`</li>
 ```
 
 ```{asis, eval = !is_pred & !status_nonparametric}
@@ -625,23 +650,11 @@ plot.ratio(assessment_object$data, info_multi)
 ```
 
 
-
-
 #### Statistical analysis
 
 <br>
 
 **Trend assessment**
-
-```{r trend_ok, include = FALSE}
-anova <- assessment$anova
-coefficients <- assessment$coefficients
-if (info$detGroup == "Imposex") {
-  anova_ok <- !is.null(coefficients) | !is.null(anova)
-} else {
-  anova_ok <- !is.null(anova) && nrow(anova) > 1
-}
-```
 
 
 ```{asis, eval = !anova_ok & !info$group %in% c("Effects", "Imposex")}
@@ -672,17 +685,27 @@ There is no trend assessment because there are too few years (or occasionally be
 
 ```{r status_ok, include = FALSE}
 
-if (info$detGroup == "Imposex") {
-  nyear <- assessment$summary$clLY
-  nyear_ok <- !is.na(nyear)
-} else {
-  nyear <- assessment$summary$nyfit
-  nyear_ok <- !is.null(nyear) && nyear >= 3
-}
-
+# if (info$detGroup == "Imposex") {
+#   nyear <- assessment$summary$clLY
+#   nyear_ok <- !is.na(nyear)
+# } else {
+#   nyear <- assessment$summary$nyfit
+#   nyear_ok <- !is.null(nyear) && nyear >= 3
+# }
 
 # nyear_ok used to deal with imposex - otherwise could use is_pred
 # need nyear_ok for text below
+
+# 220707 not sure why I wrote the text above - think it might be because I wanted 
+# to show the informal comparisons to the AC when there are individual 
+# measurements (but not enough years for a parametric fit) but this is inconsistent
+# with the rest of the reporting
+
+nyear <- assessment$summary$nyfit
+nyear_ok <- !is.null(nyear) && nyear >= 3
+
+
+
 
 status_parametric <- is_AC && nyear_ok
 
@@ -763,7 +786,7 @@ format_p <- function(p) {
 ```
 
 
-```{r interpretation_trend, eval = anova_ok & !info$group %in% "Imposex", include = FALSE}
+```{r interpretation_trend, eval = anova_ok, include = FALSE}
 wk <- assessment$summary
 wk_year <- unique(assessment$data$year)
 wk_n <- length(wk_year)
@@ -802,56 +825,130 @@ if (wk$p_overall >= 0.05) {
   
 } else if (is.na(wk$p_nonlinear)) {
   
-  if (!info$distribution %in% c("normal", "lognormal")) {
-    stop("not coded for distributions other than normal and lognormal")
+  if (!info$distribution %in% c("lognormal", "normal", "multinomial", "survival")) {
+    stop("not coded for ", info$distribution, " distribution")
   }
+ 
+  ltrend_txt1 <- switch(
+    info$distribution, 
+    lognormal = "log-linear ",
+    normal = "", 
+    multinomial = "linear logistic ",
+    survival = "log-linear"
+  )
   
-  ltrend_txt <- switch(
+  ltrend_txt2 <- paste0(
+    "There is a significant ", 
+    ltrend_txt1, 
+    "trend in the time series ", 
+    format_p(wk$p_linear), 
+    ". "
+  )
+
+  ltrend_txt3 <- switch(
     info$distribution,
     lognormal = paste0(
+      " by an estimated ",
       round(100 * (exp(wk$ltrend / 100) - 1), 1), 
       "% per year over the course of the time series."
     ),
     normal = paste(
+      " by an estimated ",
       format(wk$ltrend, digits = 2, nsmall = 0), info$unit_text, 
       "per year over the course of the time series."
+    ),
+    multinomial = paste(
+      " over the course of the time series.",
+      if (is_AC && "EAC" %in% AC_id) paste0(
+        " Formally, the odds of an individual exceeding the EAC in one year", 
+        " relative to the previous year is ",
+        format(exp(wk$ltrend), digits = 2, nsmall = 0), 
+        "."
+      )
+    ),
+    survival = paste0(
+      " by an estimated ",
+      round(100 * (exp(wk$ltrend / 100) - 1), 1), 
+      "% per year over the course of the time series."
     )
   )
 
 
-  trend_description <- paste0(
-    "There is a significant log-linear trend in the time series ", 
-    format_p(wk$p_linear), 
-    ". ",
-    stringr::str_to_sentence(txt_concentrations),
-    " have ", 
-    if (wk$ltrend > 0) "increased" else "decreased", 
-    " by an estimated ", 
-    ltrend_txt
-  )
-  
-  if (info$good.status == "high") {
-    trend_description <- paste(
-      trend_description, 
-      "Higher values of",
-      info$det_name, 
-      "indicate healthier organisms, so the trend suggests a",
-      if (wk$ltrend > 0) "improving" else "deteriorating",
-      "situation."
-    )
-  }
+  if (!is_change) {
     
+    # not a change point model (currently only imposex)
+    
+    trend_description <- paste0(
+      ltrend_txt2, 
+      stringr::str_to_sentence(txt_concentrations),
+      " have ", 
+      if (wk$ltrend > 0) "increased" else "decreased", 
+      ltrend_txt3
+    )
+    
+    if (info$good.status == "high") {
+      trend_description <- paste(
+        trend_description, 
+        "Higher values of",
+        info$det_name, 
+        "indicate healthier organisms, so the trend suggests a",
+        if (wk$ltrend > 0) "improving" else "deteriorating",
+        "situation."
+      )
+    }
+    
+  } else {
+    
+    # change point model with linear trend after change
+    
+    trend_description <- paste0(
+      "There is a significant trend in the time series ", 
+      format_p(wk$p_overall),  
+      " with levels stable until ", 
+      modelID, 
+      " and then ", 
+      if (wk$ltrend > 0) "increasing" else "decreasing", 
+      " linear logistically. ", 
+      change_txt("whole"), 
+      if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
+    )
+
+  }
+
 } else {
   
-  trend_description <- paste0(
-    "There is a significant temporal trend in the time series ", 
-    format_p(wk$p_overall), 
-    ". The trend is nonlinear ", 
-    format_p(wk$p_nonlinear), " 
-      so the shape of the trend must be assessed visually. ", 
-    change_txt("whole"), 
-    if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
-  )
+  if (!is_change) {
+  
+    # not a change point model (currently only imposex)
+  
+    trend_description <- paste0(
+      "There is a significant trend in the time series ", 
+      format_p(wk$p_overall), 
+      ". The trend is nonlinear ", 
+      format_p(wk$p_nonlinear), 
+      " so the shape of the trend must be assessed visually. ", 
+      change_txt("whole"), 
+      if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
+    )
+
+  } else if (grepl("smooth", assessment$method)) {
+    
+    # change point model with nonlinear trend after change
+    
+    trend_description <- paste0(
+      "There is a significant temporal trend in the time series ", 
+      format_p(wk$p_overall), 
+      ". The trend is nonlinear ", 
+      format_p(wk$p_nonlinear), 
+      " with levels stable until ", 
+      modelID, 
+      " followed by a nonlinear pattern of change which must be assessed visually. ", 
+      change_txt("whole"), 
+      if (assessment$contrasts["whole", "start"] < wk_recent) change_txt("recent")
+    )
+    
+  } 
+    
 
   if (info$good.status %in% "high") {
     trend_description <- paste(
@@ -866,13 +963,13 @@ if (wk$p_overall >= 0.05) {
     )
   }
 
-}
+} 
 ```
 
 
-```{r interpretation_status, eval = status_ok & !info$group %in% "Imposex", include = FALSE}
+```{r interpretation_status, eval = status_ok, include = FALSE}
 
-if (status_parametric) {
+if (status_parametric && info$detGroup != "Imposex") {
 
   AC_p <- rv[[p_txt]]
   names(AC_p) <- row.names(rv)
@@ -881,6 +978,17 @@ if (status_parametric) {
   is_below <- sapply(AC_p, function(x) x < 0.05)
 
 } 
+
+if (status_parametric && info$detGroup == "Imposex") {
+
+  p_value <- rv[["Pr(>Ref)"]]
+  names(p_value) <- row.names(rv)
+  
+  p_value <- ifelse(p_value == "<0.05", "(p < 0.05)", "(p > 0.05)")
+  
+  is_below <- p_value == "(p < 0.05)"
+} 
+
 
 if (status_nonparametric) {
 
@@ -1045,7 +1153,7 @@ if (is_HQS) {
 
 
 
-```{asis, eval = (anova_ok | status_ok) & !info$group %in% "Imposex"}
+```{asis, eval = (anova_ok | status_ok)}
 **Interpretation**
 
 `r if (anova_ok) trend_description`

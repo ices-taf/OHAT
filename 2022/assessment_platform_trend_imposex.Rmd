@@ -36,13 +36,13 @@ if (is_coefficients) {
   anovaID <- sapply(strsplit(row.names(anova), " "), "[[", 1)
   
   modelID <- unlist(strsplit(assessment$method, " "))[1]
-  isChange <- !(modelID %in% c("linear", "smooth"))
+  is_change <- !(modelID %in% c("linear", "smooth"))
   
-  ok <- anovaID %in% c("mean", "linear", "smooth", modelID[1])
+  ok <- anovaID %in% c("mean", "linear", "smooth", modelID)
   anova <- anova[ok, ]
   anovaID <- anovaID[ok]
   
-  if (isChange) {
+  if (is_change) {
           
     # order anova table so that change point models follow mean model, with 
     # linear and smooth later on - also relabel row names to make more interpretable
@@ -69,7 +69,7 @@ if (is_coefficients) {
   anova <- within(anova, {
     Fstat <- c(NA, - diff(deviance)) / disp
     Fdf <- c(NA, diff(pFixed))
-    if (isChange) {
+    if (is_change) {
       Fstat[!ok] <- NA
       Fdf[!ok] <- NA
       dfResid[!ok] <- NA
@@ -90,7 +90,7 @@ if (is_coefficients) {
         
   row.names(contrasts)[1] <- "overall"
   if (nrow(contrasts) == 2)
-    if (isChange)
+    if (is_change)
       row.names(contrasts)[2] <- paste("since", modelID)
   else
     row.names(contrasts)[2] <- paste("last", info$recent.trend, "years")
@@ -121,9 +121,7 @@ if (is_coefficients) coefficients else anova
 
 ```{asis, eval = !is_coefficients}
 <br>
-Change in logit cumulative probability 
-
-Fit on stage scale, change on logit scale
+Change in logit cumulative probability (fitted values on stage scale; change on logistic scale).
 ```
 
 
