@@ -272,6 +272,11 @@ anova_ok <- if (info$detGroup == "Imposex") {
   !is.null(anova) && nrow(anova) > 1
 }
 
+# is there a change point model 
+# default is FALSE, but can be overridden in imposex assessments
+
+is_change <- FALSE
+
 
 #### get data, assessment and info for multiplots ####
 

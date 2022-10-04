@@ -43,7 +43,7 @@ if (FALSE) {
     "assessment_platform.Rmd",
       params = list(
       compartment = "biota",
-      series = "Sweden_VÃ¤derÃ¶arna CD Clupea harengus LI Not_applicable"
+      series = "Sweden_Väderöarna CD Clupea harengus LI Not_applicable"
     )
   )
 }
