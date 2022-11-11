@@ -5,10 +5,10 @@ As an example this markdown document has been produced using the code in
 the 2019 folder. In practice, an HTML document is produced, which can be
 accessed at the link below:
 
-<https://ocean.ices.dk/OHAT/Home/GettrResult?seriesID=Belgium%20BCP%20HCHA%20Crangon%20crangon&matrix=Biota&year=2019>
+<https://dome.ices.dk/OHAT/Home/GettrResult?seriesID=Belgium%20BCP%20HCHA%20Crangon%20crangon&matrix=Biota&year=2019>
 
 The graphical map interface to all assessments can be found here:
-<https://ocean.ices.dk/ohat/> or
+<https://dome.ices.dk/ohat/> or
 <http://ices.dk/data/assessment-tools/Pages/ospar-cat-app.aspx>
 
 ### Assessment plots and statistical analysis
