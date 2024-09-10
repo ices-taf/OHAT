@@ -3,47 +3,57 @@ require(grid)
 require(rmarkdown)
 require(dplyr)
 require(data.table)
+require(harsat)
 
-series <- commandArgs(trailingOnly = TRUE)[1]
+#packageVersion('harsat')
+#remotes::install_github("osparcomm/HARSAT@main")
+
+# to live test:
+# https://tafinternal.ices.dk/worker2/OAT/13704%20AS%20Gadus%20morhua%20LI/biota/2024
+
+# add logging
+
+logfile <-
+  paste0(
+    "log/",
+    gsub(" ", "_", commandArgs(trailingOnly = TRUE)[1]),
+    "_",
+    commandArgs(trailingOnly = TRUE)[2],
+    "_log.txt"
+  )
+
+con <- file(logfile)
+sink(con, append = TRUE)
+sink(con, type = "message", append = TRUE)
+
+sessioninfo::session_info()
+
+series_id <- commandArgs(trailingOnly = TRUE)[1]
 compartment <- commandArgs(trailingOnly = TRUE)[2]
 
 load("assessment_platform.RData")
 
-render(
-  output_file = paste(gsub(" ", "_", series), "__", gsub(" ", "_", compartment), "__2024.html", sep = ""),
+harsat::report_assessment(
+  get(paste0(compartment, "_assessment")),
+  subset = series == series_id,
   output_dir = "html",
-  "assessment_platform.Rmd",
-  params = list(
-    compartment = compartment,
-    series = series
-  )
+  output_file = paste(gsub(" ", "_", series_id), compartment, "2024.html", sep = "__")
 )
+
+sessioninfo::session_info()
 
 
 #Use this for executing
 if (FALSE) {
-  #    series = "Norway_97A2 Bod? harbour AS Mytilus edulis SB Not_applicable",
-  #    series = "Sweden_V?der?arna CD Clupea harengus LI Not_applicable",
-  #   series = "Norway_57A Krossanes CD Mytilus edulis SB",
-  #   series = "Norway_91A2 ?rland ytre Trondheimsfjord CD Mytilus edulis SB Not_applicable"
-  #   Sediment
-  #   series = "Germany_STG16 CD"
-  #   Water
-  #   series = "The Netherlands_DOOVBWT CD"
-  #   series = "Ireland_Carlingford Lough Inner Stn 2 CD"
-  
-  # params <- list(
 
-  # series = "Norway_10A2 Skallneset AG Mytilus edulis SB Not_applicable",
-  #  compartment = "biota"
-  #)
-  
-#  rm(params)
-  render(
-    "assessment_platform.Rmd",
-      params = list(
-      compartment = "biota",
-      series = "2958 CD Gadus morhua LI"
-    )
+  series_id <- "13704 AS Gadus morhua LI"
+  compartment <- "biota"
+
+  harsat::report_assessment(
+    get(paste0(compartment, "_assessment")),
+    subset = series == series_id,
+    output_dir = "html",
+  output_file = paste(gsub(" ", "_", series_id), compartment, "2024.html", sep = "__")
   )
+
 }
