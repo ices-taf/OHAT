@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.Ruserdata
+.vscode
+
+hazardous-tool\.Rproj
+
+*.rds
