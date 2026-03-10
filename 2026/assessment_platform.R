@@ -5,7 +5,14 @@
 series_id <- commandArgs(trailingOnly = TRUE)[1]
 compartment <- commandArgs(trailingOnly = TRUE)[2]
 
+#Use this for executing
+if (FALSE) {
+  series_id <- "13704 AS Gadus morhua LI"
+  compartment <- "biota"
+}
+
 # add logging
+dir.create("log", showWarnings = FALSE)
 logfile <-
   paste0("log/", gsub(" ", "_", series_id), "_", compartment, "_log.txt")
 
@@ -14,14 +21,21 @@ sink(con, append = TRUE)
 sink(con, type = "message", append = TRUE)
 
 
+ensure_data <- function(filename) {
+  data_url <- "https://github.com/ices-taf/OHAT/releases/download/2026-v1/"
 
-if (!file.exists("biota.rds")) {
-  download.file(
-    "https://github.com/colinpmillar/OHAT/releases/download/2026v1/biota.rds",
-    destfile = "biota.rds",
-    mode = "wb"
-  )
+  if (!file.exists(filename)) {
+    download.file(
+      paste0(data_url, filename),
+      destfile = filename,
+      mode = "wb"
+    )
+  }
 }
+
+ensure_data("biota.rds")
+ensure_data("sediment.rds")
+ensure_data("water.rds")
 
 # for testing, contstruct calling url
 calling_url <- paste0(
@@ -64,7 +78,10 @@ harsat::report_assessment(
 
 sessioninfo::session_info()
 
-#Use this for executing
+sink(file = NULL)
+close(con)
+
+#Use this for testing
 if (FALSE) {
 
   series_id <- "13704 AS Gadus morhua LI"
