@@ -1,7 +1,13 @@
 .Rproj.user
 .Rhistory
 .Ruserdata
-.vscode
+.vscode/*
+.devcontainer/*
+renv/*
+.Rprofile
+renv.lock
+
+worksheet.R
 
 hazardous-tool\.Rproj
 
