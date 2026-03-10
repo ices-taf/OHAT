@@ -58,6 +58,7 @@ require(data.table)
 
 # Get the current working directory
 library_path <- file.path(getwd(), "lib")
+dir.create("lib", showWarnings = FALSE)
 
 # Install the package from the relevant branch 'main'/'develop' to the specified library path
 #remotes::install_github("osparcomm/HARSAT@develop", lib = library_path, force = TRUE)
