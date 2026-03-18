@@ -22,7 +22,7 @@ sink(con, type = "message", append = TRUE)
 
 
 ensure_data <- function(filename) {
-  data_url <- "https://github.com/ices-taf/OHAT/releases/download/2026-v1/"
+  data_url <- "https://github.com/ices-taf/OHAT/releases/download/2026-v2/"
 
   if (!file.exists(filename)) {
     download.file(
