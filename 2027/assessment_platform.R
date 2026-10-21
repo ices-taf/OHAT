@@ -1,0 +1,101 @@
+# to live test:
+# https://tafinternal.ices.dk/worker2/OAT/13704%20AS%20Gadus%20morhua%20LI/biota/2027
+
+# get arguments
+series_id <- commandArgs(trailingOnly = TRUE)[1]
+compartment <- commandArgs(trailingOnly = TRUE)[2]
+
+#Use this for executing
+if (FALSE) {
+  series_id <- "13704 AS Gadus morhua LI"
+  compartment <- "biota"
+}
+
+# add logging
+dir.create("log", showWarnings = FALSE)
+logfile <-
+  paste0("log/", gsub(" ", "_", series_id), "_", compartment, "_log.txt")
+
+con <- file(logfile)
+sink(con, append = TRUE)
+sink(con, type = "message", append = TRUE)
+
+
+ensure_data <- function(filename) {
+  data_url <- "https://github.com/ices-taf/OHAT/releases/download/2027/"
+
+  if (!file.exists(filename)) {
+    download.file(
+      paste0(data_url, filename),
+      destfile = filename,
+      mode = "wb"
+    )
+  }
+}
+
+ensure_data("biota.rds")
+ensure_data("sediment.rds")
+ensure_data("water.rds")
+
+# for testing, contstruct calling url
+calling_url <- paste0(
+  "https://dome.ices.dk/ohat/Home/GettrResult?seriesID=",gsub(" ", "%20", series_id),
+  "&matrix=", compartment, "&year=2026"
+)
+
+# print log file header
+cat("\n\nStarting assessment platform for OHAT 2026\n")
+
+cat("\nto test, try:\n\t", calling_url, "\n\n")
+
+sessioninfo::session_info()
+
+require(lattice)
+require(grid)
+require(rmarkdown)
+require(dplyr)
+require(data.table)
+
+# Get the current working directory
+library_path <- file.path(getwd(), "lib")
+dir.create("lib", showWarnings = FALSE)
+
+# Install the package from the relevant branch 'main'/'develop' to the specified library path
+if (!requireNamespace("harsat", lib.loc = library_path, quietly = TRUE)) {
+  remotes::install_github("osparcomm/HARSAT@develop", lib = library_path, force = TRUE, dependencies = FALSE)
+}
+
+# Load the package harsat 1.0.6
+library("harsat", lib.loc = library_path)
+
+cat("\nUsing harsat version:", capture.output(packageVersion("harsat")), "\n\n")
+
+assessment <- readRDS(paste0(compartment, ".rds"))
+
+harsat::report_assessment(
+  assessment,
+  subset = series == series_id,
+  output_dir = "html",
+  output_file = paste(gsub(" ", "_", series_id), compartment, "2027.html", sep = "__")
+)
+
+sessioninfo::session_info()
+
+sink(file = NULL)
+close(con)
+
+#Use this for testing
+if (FALSE) {
+
+  series_id <- "13704 AS Gadus morhua LI"
+  #series_id <- "7884 CD Limanda limanda LI"
+  compartment <- "biota"
+
+  harsat::report_assessment(
+    assessment <- readRDS(paste0(compartment, ".rds")),
+    subset = series == series_id,
+    output_dir = "html",
+  output_file = paste(gsub(" ", "_", series_id), compartment, "2027.html", sep = "__")
+  )
+
+}
