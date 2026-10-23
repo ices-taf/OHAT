@@ -40,11 +40,11 @@ ensure_data("water.rds")
 # for testing, contstruct calling url
 calling_url <- paste0(
   "https://dome.ices.dk/ohat/Home/GettrResult?seriesID=",gsub(" ", "%20", series_id),
-  "&matrix=", compartment, "&year=2026"
+  "&matrix=", compartment, "&year=2027"
 )
 
 # print log file header
-cat("\n\nStarting assessment platform for OHAT 2026\n")
+cat("\n\nStarting assessment platform for OHAT 2027\n")
 
 cat("\nto test, try:\n\t", calling_url, "\n\n")
 

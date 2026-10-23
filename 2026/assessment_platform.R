@@ -65,7 +65,7 @@ if (!requireNamespace("harsat", lib.loc = library_path, quietly = TRUE)) {
   remotes::install_github("osparcomm/HARSAT@develop", lib = library_path, force = TRUE, dependencies = FALSE)
 }
 
-# Load the package harsat 1.0.2.1007
+# Load the package harsat 1.0.6
 library("harsat", lib.loc = library_path)
 
 cat("\nUsing harsat version:", capture.output(packageVersion("harsat")), "\n\n")
@@ -98,7 +98,7 @@ if (FALSE) {
     assessment <- readRDS(paste0(compartment, ".rds")),
     subset = series == series_id,
     output_dir = "html",
-  output_file = paste(gsub(" ", "_", series_id), compartment, "2025.html", sep = "__")
+  output_file = paste(gsub(" ", "_", series_id), compartment, "2026.html", sep = "__")
   )
 
 }
