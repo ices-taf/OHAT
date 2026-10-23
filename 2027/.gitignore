@@ -2,3 +2,5 @@
 /lib/
 /html/
 /log/
+/versions.dcf
+*.download
