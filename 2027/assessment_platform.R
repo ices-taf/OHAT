@@ -16,15 +16,6 @@ if (FALSE) {
 data_url <- "https://github.com/ices-taf/OHAT/releases/download/2027-v1/"
 harsat_ref <- "osparcomm/HARSAT@develop"
 
-# add logging
-dir.create("log", showWarnings = FALSE)
-logfile <-
-  paste0("log/", gsub(" ", "_", series_id), "_", compartment, "_log.txt")
-
-con <- file(logfile)
-sink(con, append = TRUE)
-sink(con, type = "message", append = TRUE)
-
 # record of the data and package sources currently installed
 version_file <- "versions.dcf"
 recorded <-
@@ -35,9 +26,37 @@ record_version <- function(field, value) {
   write.dcf(as.data.frame(recorded), version_file)
 }
 
+# Get the current working directory
+library_path <- file.path(getwd(), "lib")
+dir.create("lib", showWarnings = FALSE)
+
+data_changed <- !identical(recorded$data_url, data_url)
+harsat_changed <-
+  !identical(recorded$harsat_ref, harsat_ref) ||
+  !requireNamespace("harsat", lib.loc = library_path, quietly = TRUE)
+
+# html and log folders are a cache of built pages: clear them if the data or
+# harsat has changed (done before logging starts, so this run's log is kept)
+if (data_changed || harsat_changed) {
+  unlink(c("html", "log"), recursive = TRUE)
+}
+
+# add logging
+dir.create("log", showWarnings = FALSE)
+logfile <-
+  paste0("log/", gsub(" ", "_", series_id), "_", compartment, "_log.txt")
+
+con <- file(logfile)
+sink(con, append = TRUE)
+sink(con, type = "message", append = TRUE)
+
+if (data_changed || harsat_changed) {
+  cat("\nData or harsat changed: cleared html and log folders\n")
+}
+
 data_files <- c("biota.rds", "sediment.rds", "water.rds")
 
-if (!identical(recorded$data_url, data_url)) {
+if (data_changed) {
   cat(
     "\nData source changed from", c(recorded$data_url, "(none)")[1], "to", data_url,
     "\nremoving old data files\n"
@@ -80,14 +99,9 @@ require(rmarkdown)
 require(dplyr)
 require(data.table)
 
-# Get the current working directory
-library_path <- file.path(getwd(), "lib")
-dir.create("lib", showWarnings = FALSE)
-
 # Install the package from harsat_ref to the specified library path, if it is
 # missing or harsat_ref has changed since it was installed
-if (!identical(recorded$harsat_ref, harsat_ref) ||
-    !requireNamespace("harsat", lib.loc = library_path, quietly = TRUE)) {
+if (harsat_changed) {
   cat("\nInstalling harsat from", harsat_ref, "\n")
   remotes::install_github(harsat_ref, lib = library_path, force = TRUE, dependencies = FALSE)
   record_version("harsat_ref", harsat_ref)
