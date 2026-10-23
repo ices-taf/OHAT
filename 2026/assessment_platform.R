@@ -72,6 +72,8 @@ cat("\nUsing harsat version:", capture.output(packageVersion("harsat")), "\n\n")
 
 assessment <- readRDS(paste0(compartment, ".rds"))
 
+dir.create("html", showWarnings = FALSE)
+
 harsat::report_assessment(
   assessment,
   subset = series == series_id,
@@ -82,6 +84,7 @@ harsat::report_assessment(
 sessioninfo::session_info()
 
 sink(file = NULL)
+sink(type = "message")
 close(con)
 
 #Use this for testing
